@@ -1766,7 +1766,21 @@
         updateSyncBadge('syncing');
         const syncPayload = { ...payload, user_id: appState.session.user.id, updated_at: new Date().toISOString() };
         const { error } = await supabase.from(tableName).upsert(syncPayload);
-        if (error) throw error;
+
+        if (error) {
+          // Schema Fallback if 'items' column is missing in Supabase invoices table
+          if (error.code === 'PGRST204' && tableName === 'invoices' && syncPayload.items) {
+            console.warn("Supabase 'invoices' table missing 'items' column. Retrying without items column...");
+            const fallbackPayload = { ...syncPayload };
+            delete fallbackPayload.items;
+            const { error: fallbackErr } = await supabase.from(tableName).upsert(fallbackPayload);
+            if (!fallbackErr) {
+              updateSyncBadge('online');
+              return;
+            }
+          }
+          throw error;
+        }
         updateSyncBadge('online');
       } catch (err) {
         console.warn(`Cloud save failed for ${tableName}, added to sync queue:`, err);
@@ -2682,14 +2696,20 @@
       document.getElementById('btn-download-pdf')?.addEventListener('click', () => {
         const element = document.getElementById('invoice-receipt-render-area');
         if (html2pdf && element) {
+          showToast('Generating PDF receipt...', 'info');
           const opt = {
-            margin: 10,
+            margin: 8,
             filename: `${appState.activeInvoice ? appState.activeInvoice.invoice_number : 'invoice'}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
           };
-          html2pdf().set(opt).from(element).save();
+          html2pdf().set(opt).from(element).save().then(() => {
+            showToast('PDF downloaded successfully!', 'success');
+          }).catch(err => {
+            console.error('PDF Generation Error:', err);
+            window.print();
+          });
         } else {
           window.print();
         }
