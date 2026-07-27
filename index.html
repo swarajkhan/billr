@@ -258,12 +258,17 @@
     /* Bottom Navigation Bar (Mobile) */
     #bottom-nav {
       display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
       height: 60px;
       background: var(--clr-surface);
       border-top: 1px solid var(--clr-border);
       justify-content: space-around;
       align-items: center;
-      z-index: 20;
+      z-index: 1000;
+      box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.4);
     }
 
     .bottom-tab {
@@ -513,6 +518,14 @@
         display: flex !important;
       }
 
+      #main-content {
+        padding-bottom: 70px;
+      }
+
+      .screen {
+        padding-bottom: 85px !important;
+      }
+
       #top-bar {
         padding: 0 0.75rem;
       }
@@ -546,10 +559,76 @@
       .card {
         padding: 1rem;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       .modal-box {
         max-width: 94vw !important;
+        margin: 0.5rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .screen {
+        padding: 0.75rem !important;
+        padding-bottom: 85px !important;
+      }
+
+      .card {
+        padding: 0.85rem !important;
+        border-radius: var(--radius-md) !important;
+      }
+
+      /* Stack 2-column forms vertically on small mobile screens */
+      .form-grid-2col {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+      }
+
+      /* Stack action bars vertically on small mobile screens */
+      .mobile-stack-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+      }
+
+      .mobile-stack-bar input,
+      .mobile-stack-bar button {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      /* Touch-friendly buttons and inputs */
+      .btn {
+        min-height: 48px !important;
+        font-size: 0.95rem !important;
+        padding: 0.65rem 1rem !important;
+      }
+
+      .btn-icon {
+        width: 42px !important;
+        height: 42px !important;
+        min-height: 42px !important;
+      }
+
+      .input-field {
+        min-height: 46px !important;
+        font-size: 0.95rem !important;
+      }
+
+      /* Touch friendly table padding */
+      table th, table td {
+        padding: 0.6rem 0.5rem !important;
+        font-size: 0.82rem !important;
+      }
+
+      .modal-footer {
+        flex-direction: column-reverse !important;
+        gap: 0.5rem !important;
+      }
+
+      .modal-footer button {
+        width: 100% !important;
       }
     }
 
@@ -689,7 +768,7 @@
                 <input type="text" id="setup-shop-name" class="input-field" placeholder="e.g. Metro Mart Supermarket"
                   required>
               </div>
-              <div style="margin-bottom: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-grid-2col" style="margin-bottom: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div>
                   <label
                     style="display: block; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--clr-text-2);">Owner
@@ -703,7 +782,7 @@
                   <input type="text" id="setup-phone" class="input-field" placeholder="+91 9876543210">
                 </div>
               </div>
-              <div style="margin-bottom: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-grid-2col" style="margin-bottom: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                 <div>
                   <label
                     style="display: block; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--clr-text-2);">Currency
@@ -895,7 +974,7 @@
 
       <!-- SCREEN 3: Inventory Management -->
       <section id="screen-inventory" class="screen">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="mobile-stack-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
           <div style="display: flex; gap: 0.75rem; flex: 1; max-width: 400px;">
             <input type="text" id="inv-search-input" class="input-field"
               placeholder="Search by product name or barcode...">
@@ -954,7 +1033,7 @@
 
       <!-- SCREEN 5: Customers -->
       <section id="screen-customers" class="screen">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div class="mobile-stack-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
           <input type="text" id="customer-search-input" class="input-field"
             placeholder="Search customer by name or phone..." style="max-width: 360px;">
           <button id="btn-add-customer-main" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Add
@@ -1020,7 +1099,7 @@
                   placeholder="e.g. Metro Mart Supermarket">
               </div>
 
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                 <div>
                   <label
                     style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Owner
@@ -1035,7 +1114,7 @@
                 </div>
               </div>
 
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                 <div>
                   <label
                     style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Currency
