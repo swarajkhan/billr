@@ -1813,9 +1813,9 @@
       try {
         const userId = appState.session.user.id;
 
-        // Pull Shop Profile
-        const { data: cloudProfile } = await supabase.from('shop_profiles').select('*').eq('user_id', userId).single();
-        if (cloudProfile) {
+        // Pull Shop Profile (Using maybeSingle to prevent HTTP 406 when no profile exists yet)
+        const { data: cloudProfile, error: profileErr } = await supabase.from('shop_profiles').select('*').eq('user_id', userId).maybeSingle();
+        if (!profileErr && cloudProfile) {
           await db.shop_profile.put(cloudProfile);
           loadShopProfile();
         }
