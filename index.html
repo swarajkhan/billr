@@ -263,6 +263,26 @@
     .modal-body { padding: 1.25rem; flex: 1; overflow-y: auto; }
     .modal-footer { padding: 1.25rem; border-top: 1px solid var(--clr-border); display: flex; justify-content: flex-end; gap: 0.75rem; }
 
+    /* Auth Error & Success Box */
+    .auth-msg-box {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: none;
+      line-height: 1.4;
+    }
+    .auth-msg-box.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--clr-danger);
+      color: #fca5a5;
+    }
+    .auth-msg-box.success {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid var(--clr-success);
+      color: #86efac;
+    }
+
     /* Toast System */
     #toast-container {
       position: fixed;
@@ -372,7 +392,7 @@
       </div>
 
       <div style="padding: 1.25rem; border-top: 1px solid var(--clr-border);">
-        <div id="user-profile-widget" style="display: flex; align-items: center; gap: 0.75rem;">
+        <div id="user-profile-widget" style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;" title="Click to view/edit shop profile">
           <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--clr-surface-2); display: flex; align-items: center; justify-content: center; font-weight: 600;" id="user-avatar-initials">G</div>
           <div style="flex: 1; overflow: hidden;">
             <div style="font-weight: 600; font-size: 0.85rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" id="user-display-name">Guest Shop</div>
@@ -392,9 +412,9 @@
 
         <div style="display: flex; align-items: center; gap: 1rem;">
           <!-- Sync Indicator -->
-          <div id="sync-status-badge" class="badge badge-success" style="cursor: pointer;" title="Cloud Sync Status">
-            <i class="fa-solid fa-circle" style="font-size: 0.5rem;"></i>
-            <span id="sync-status-text">Online</span>
+          <div id="sync-status-badge" class="badge badge-success" style="cursor: pointer;" title="Click to trigger Manual Cloud Sync">
+            <i class="fa-solid fa-cloud" style="font-size: 0.75rem;"></i>
+            <span id="sync-status-text">Cloud Synced</span>
           </div>
 
           <button id="btn-logout" class="btn btn-secondary btn-icon" title="Logout / Switch Account">
@@ -417,11 +437,11 @@
         </div>
       </section>
 
-      <!-- SCREEN 1: Shop Setup (First Time) -->
+      <!-- SCREEN 1: Shop Setup (First Time Create Profile) -->
       <section id="screen-setup" class="screen">
         <div style="max-width: 540px; margin: auto; width: 100%;">
           <div class="card">
-            <h2 style="margin-bottom: 1rem;">Configure Your Shop Profile</h2>
+            <h2 style="margin-bottom: 1rem;"><i class="fa-solid fa-store" style="color: var(--clr-accent);"></i> Configure Your Shop Profile</h2>
             <form id="form-shop-setup">
               <div style="margin-bottom: 1rem;">
                 <label style="display: block; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--clr-text-2);">Shop Name *</label>
@@ -451,7 +471,7 @@
                 <label style="display: block; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--clr-text-2);">Receipt Footer Message</label>
                 <input type="text" id="setup-footer" class="input-field" value="Thank you for shopping with us!">
               </div>
-              <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px;">Save & Enter My Shop</button>
+              <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px;"><i class="fa-solid fa-floppy-disk"></i> Save & Enter My Shop</button>
             </form>
           </div>
         </div>
@@ -676,23 +696,69 @@
         </div>
       </section>
 
-      <!-- SCREEN 7: Settings -->
+      <!-- SCREEN 7: Settings & Profile Management (Edit & Delete Profile) -->
       <section id="screen-settings" class="screen">
-        <div style="max-width: 600px; margin: 0 auto; width: 100%;">
+        <div style="max-width: 640px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <!-- Card 1: Edit Shop Profile -->
           <div class="card">
-            <h3>Shop Profile & Preferences</h3>
-            <form id="form-settings" style="margin-top: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+              <h3><i class="fa-solid fa-store" style="color: var(--clr-accent);"></i> Edit Shop Profile</h3>
+              <span id="profile-cloud-badge" class="badge badge-accent">Local & Cloud</span>
+            </div>
+            
+            <form id="form-settings">
               <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem;">Shop Name</label>
-                <input type="text" id="settings-shop-name" class="input-field">
+                <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Shop Name *</label>
+                <input type="text" id="settings-shop-name" class="input-field" required placeholder="e.g. Metro Mart Supermarket">
               </div>
-              <div style="margin-bottom: 1rem;">
-                <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem;">Owner Name</label>
-                <input type="text" id="settings-owner-name" class="input-field">
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                  <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Owner Name</label>
+                  <input type="text" id="settings-owner-name" class="input-field" placeholder="Owner Full Name">
+                </div>
+                <div>
+                  <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Phone Number</label>
+                  <input type="text" id="settings-phone" class="input-field" placeholder="+91 9876543210">
+                </div>
               </div>
-              <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Save Settings</button>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                  <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Currency Symbol</label>
+                  <input type="text" id="settings-currency" class="input-field" value="₹">
+                </div>
+                <div>
+                  <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Low Stock Alert Threshold</label>
+                  <input type="number" id="settings-threshold" class="input-field" value="5">
+                </div>
+              </div>
+
+              <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Receipt Footer Message</label>
+                <input type="text" id="settings-footer" class="input-field" value="Thank you for shopping with us!">
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px; font-weight: 600;">
+                <i class="fa-solid fa-floppy-disk"></i> Save Shop Profile (Syncs to Cloud)
+              </button>
             </form>
           </div>
+
+          <!-- Card 2: Account Actions & Data Reset -->
+          <div class="card" style="border-color: rgba(239, 68, 68, 0.3);">
+            <h3 style="color: var(--clr-danger); margin-bottom: 0.5rem;"><i class="fa-solid fa-triangle-exclamation"></i> Account & Data Management</h3>
+            <p style="font-size: 0.85rem; color: var(--clr-text-2); margin-bottom: 1.25rem; line-height: 1.4;">
+              Need to clear data or start fresh? You can trigger a manual cloud sync or permanently delete your profile and shop records.
+            </p>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+              <button id="btn-manual-sync" class="btn btn-secondary" style="flex: 1;"><i class="fa-solid fa-arrows-rotate"></i> Manual Cloud Sync</button>
+              <button id="btn-delete-profile" class="btn btn-danger" style="flex: 1;"><i class="fa-solid fa-trash"></i> Delete Profile & Clear Data</button>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -709,25 +775,44 @@
   </nav>
 
   <!-- MODALS -->
-  <!-- Auth Modal -->
+  <!-- Auth Modal (Email/Password + Google OAuth) -->
   <div id="modal-auth" class="modal-overlay">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width: 420px;">
       <div class="modal-header">
-        <h3>Sign In to ShopFlow Pro</h3>
+        <h3 id="auth-modal-title">Cloud Account Sign In</h3>
         <button class="btn btn-secondary modal-close"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="modal-body">
+        <div id="auth-error" class="auth-msg-box"></div>
         <form id="form-auth">
           <div style="margin-bottom: 1rem;">
-            <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem;">Email Address</label>
-            <input type="email" id="auth-email" class="input-field" required placeholder="owner@myshop.com">
+            <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Email Address</label>
+            <input type="email" id="auth-email" class="input-field" required placeholder="owner@myshop.com" autocomplete="email">
           </div>
-          <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem;">Password</label>
-            <input type="password" id="auth-password" class="input-field" required placeholder="••••••••">
+          <div style="margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+              <label style="font-size: 0.85rem; color: var(--clr-text-2);">Password</label>
+              <button type="button" id="btn-forgot-password" style="background: none; border: none; color: var(--clr-accent-h); font-size: 0.78rem; cursor: pointer; text-decoration: underline;">Forgot Password?</button>
+            </div>
+            <input type="password" id="auth-password" class="input-field" required placeholder="••••••••" autocomplete="current-password">
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px;">Login to Cloud Account</button>
+          <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%; height: 48px; font-weight: 600;">Sign In to Account</button>
         </form>
+
+        <div style="display: flex; align-items: center; margin: 1.25rem 0; gap: 0.75rem;">
+          <div style="flex: 1; height: 1px; background: var(--clr-border);"></div>
+          <span style="font-size: 0.75rem; color: var(--clr-text-3); text-transform: uppercase; font-weight: 600;">Or continue with</span>
+          <div style="flex: 1; height: 1px; background: var(--clr-border);"></div>
+        </div>
+
+        <button type="button" id="btn-oauth-google" class="btn btn-secondary" style="width: 100%; height: 48px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.6rem;">
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20" alt="Google">
+          <span>Google Account</span>
+        </button>
+
+        <div style="margin-top: 1.25rem; text-align: center;">
+          <button type="button" id="btn-toggle-auth-mode" style="background: none; border: none; color: var(--clr-accent-h); font-size: 0.85rem; cursor: pointer; text-decoration: underline;">Don't have an account? Register</button>
+        </div>
       </div>
     </div>
   </div>
@@ -823,7 +908,11 @@
 
     let supabase = null;
     if (createClient && !SUPABASE_URL.includes("YOUR_PROJECT_ID")) {
-      supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      try {
+        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      } catch (e) {
+        console.error("Supabase Client Init Exception:", e);
+      }
     }
 
     // ===== SECTION: Dexie / IndexedDB =====
@@ -839,14 +928,16 @@
 
     // ===== SECTION: Application State =====
     let appState = {
-      session: null, // { loggedIn: bool, guest: bool }
-      shopProfile: { shop_name: 'ShopFlow Mart', currency_symbol: '₹', low_stock_threshold: 5 },
+      session: null, // { loggedIn: bool, guest: bool, user: obj }
+      shopProfile: { id: 'default_shop', shop_name: 'ShopFlow Mart', owner_name: 'Shop Owner', phone: '', currency_symbol: '₹', low_stock_threshold: 5, receipt_footer: 'Thank you for shopping with us!' },
       cart: [],
       selectedCustomer: null, // { id, name, phone }
       discountType: 'flat',
       paymentMethod: 'cash',
       activeInvoice: null
     };
+
+    let authMode = 'login'; // 'login' or 'register'
 
     // STRICTLY FETCHED FROM suggestions.json AT RUNTIME (NO HARDCODING IN INDEX.HTML)
     let suggestionsData = {
@@ -863,10 +954,10 @@
       toast.className = `toast ${type}`;
       toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> <span>${message}</span>`;
       container.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
+      setTimeout(() => toast.remove(), 3200);
     }
 
-    // ===== SECTION: Suggestions Loader (FETCHED RUNTIME via fetch('./suggestions.json')) =====
+    // ===== SECTION: Suggestions Loader =====
     async function loadSuggestions() {
       if (window.location.protocol === 'file:') {
         console.warn('file:// protocol detected. Fetch requires http:// or https:// protocol.');
@@ -890,6 +981,412 @@
       const catSelect = document.getElementById('prod-category');
       if (!catSelect) return;
       catSelect.innerHTML = suggestionsData.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    // ===== SECTION: Auth Mode & Modal Handlers =====
+    function toggleAuthMode(targetMode) {
+      authMode = targetMode || (authMode === 'login' ? 'register' : 'login');
+      const title = document.getElementById('auth-modal-title');
+      const submitBtn = document.getElementById('auth-submit-btn');
+      const toggleBtn = document.getElementById('btn-toggle-auth-mode');
+      const forgotBtn = document.getElementById('btn-forgot-password');
+      const errBox = document.getElementById('auth-error');
+
+      errBox.style.display = 'none';
+
+      if (authMode === 'register') {
+        title.textContent = 'Create ShopFlow Account';
+        submitBtn.textContent = 'Register & Create Account';
+        toggleBtn.textContent = 'Already have an account? Sign In';
+        forgotBtn.style.display = 'none';
+      } else {
+        title.textContent = 'Cloud Account Sign In';
+        submitBtn.textContent = 'Sign In to Account';
+        toggleBtn.textContent = "Don't have an account? Register";
+        forgotBtn.style.display = 'inline-block';
+      }
+    }
+
+    async function signInWithGoogle() {
+      if (!supabase) {
+        showToast('Supabase Client not configured. Please add SUPABASE_URL & ANON_KEY in index.html script block.', 'warning');
+        return;
+      }
+      try {
+        const redirectUrl = window.location.origin + window.location.pathname;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: redirectUrl }
+        });
+        if (error) throw error;
+      } catch (err) {
+        console.error('Google OAuth error:', err);
+        showToast(`Google Sign-In Error: ${err.message}`, 'error');
+      }
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const errBox = document.getElementById('auth-error');
+      errBox.style.display = 'none';
+
+      if (!supabase) {
+        errBox.className = 'auth-msg-box error';
+        errBox.textContent = 'Supabase Client not initialized. Enter your credentials in index.html to enable cloud sign in.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      const submitBtn = document.getElementById('auth-submit-btn');
+      const origText = submitBtn.textContent;
+      submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+      submitBtn.disabled = true;
+
+      try {
+        if (authMode === 'register') {
+          const { data, error } = await supabase.auth.signUp({ email, password });
+          if (error) throw error;
+
+          if (data.session) {
+            appState.session = { loggedIn: true, guest: false, user: data.user };
+            localStorage.setItem('shopflow_session', JSON.stringify(appState.session));
+            document.getElementById('modal-auth').classList.remove('active');
+            showAuthenticatedApp();
+            showToast('Account created and signed in!', 'success');
+          } else {
+            errBox.className = 'auth-msg-box success';
+            errBox.textContent = 'Registration successful! Please check your email to confirm your account and complete login.';
+            errBox.style.display = 'block';
+          }
+        } else {
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+
+          appState.session = { loggedIn: true, guest: false, user: data.user };
+          localStorage.setItem('shopflow_session', JSON.stringify(appState.session));
+          document.getElementById('modal-auth').classList.remove('active');
+          showAuthenticatedApp();
+          showToast('Signed in successfully!', 'success');
+        }
+      } catch (err) {
+        errBox.className = 'auth-msg-box error';
+        if (authMode === 'register' && err.message && (err.message.includes('already registered') || err.message.includes('already exists'))) {
+          errBox.textContent = "This email is already registered. Click 'Already have an account? Sign In' to log in.";
+        } else {
+          errBox.textContent = err.message || 'Authentication failed. Please check credentials.';
+        }
+        errBox.style.display = 'block';
+      } finally {
+        submitBtn.innerHTML = origText;
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function handlePasswordReset() {
+      if (!supabase) {
+        showToast('Supabase Client not configured in index.html', 'warning');
+        return;
+      }
+      const emailVal = document.getElementById('auth-email').value.trim();
+      const email = emailVal || prompt("Enter your registered email address to receive a password reset link:");
+      if (!email) return;
+
+      try {
+        const redirectUrl = window.location.origin + window.location.pathname;
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+        if (error) throw error;
+        showToast('Password reset link sent! Check your email inbox.', 'success');
+      } catch (err) {
+        showToast(`Reset error: ${err.message}`, 'error');
+      }
+    }
+
+    async function logout() {
+      if (supabase && appState.session?.loggedIn) {
+        try { await supabase.auth.signOut(); } catch (e) { console.warn('Sign out error:', e); }
+      }
+      localStorage.removeItem('shopflow_session');
+      appState.session = null;
+      showWelcomeGatekeeper();
+      showToast('Signed out successfully', 'info');
+    }
+
+    // ===== SECTION: Profile Operations (Create, Edit, Delete) =====
+    async function loadShopProfile() {
+      const stored = await db.shop_profile.get('default_shop');
+      if (stored) {
+        appState.shopProfile = { ...appState.shopProfile, ...stored };
+      }
+
+      // Populate Settings inputs
+      document.getElementById('settings-shop-name').value = appState.shopProfile.shop_name || '';
+      document.getElementById('settings-owner-name').value = appState.shopProfile.owner_name || '';
+      document.getElementById('settings-phone').value = appState.shopProfile.phone || '';
+      document.getElementById('settings-currency').value = appState.shopProfile.currency_symbol || '₹';
+      document.getElementById('settings-threshold').value = appState.shopProfile.low_stock_threshold || 5;
+      document.getElementById('settings-footer').value = appState.shopProfile.receipt_footer || 'Thank you for shopping with us!';
+
+      // Populate Setup inputs
+      document.getElementById('setup-shop-name').value = appState.shopProfile.shop_name || '';
+      document.getElementById('setup-owner-name').value = appState.shopProfile.owner_name || '';
+      document.getElementById('setup-phone').value = appState.shopProfile.phone || '';
+      document.getElementById('setup-currency').value = appState.shopProfile.currency_symbol || '₹';
+      document.getElementById('setup-threshold').value = appState.shopProfile.low_stock_threshold || 5;
+      document.getElementById('setup-footer').value = appState.shopProfile.receipt_footer || 'Thank you for shopping with us!';
+    }
+
+    async function handleSaveProfile(e) {
+      e.preventDefault();
+      const shopName = document.getElementById('settings-shop-name').value.trim();
+      if (!shopName) {
+        showToast('Shop Name is required', 'error');
+        return;
+      }
+
+      const updated = {
+        id: 'default_shop',
+        shop_name: shopName,
+        owner_name: document.getElementById('settings-owner-name').value.trim(),
+        phone: document.getElementById('settings-phone').value.trim(),
+        currency_symbol: document.getElementById('settings-currency').value.trim() || '₹',
+        low_stock_threshold: parseInt(document.getElementById('settings-threshold').value) || 5,
+        receipt_footer: document.getElementById('settings-footer').value.trim() || 'Thank you!',
+        updated_at: new Date().toISOString()
+      };
+
+      await db.shop_profile.put(updated);
+      appState.shopProfile = updated;
+
+      // Save to Cloud Point #1
+      syncToCloud('shop_profiles', updated);
+
+      showToast('Shop profile updated and synced to cloud!', 'success');
+      showAuthenticatedApp();
+    }
+
+    async function handleFirstTimeSetup(e) {
+      e.preventDefault();
+      const shopName = document.getElementById('setup-shop-name').value.trim();
+      if (!shopName) return;
+
+      const profile = {
+        id: 'default_shop',
+        shop_name: shopName,
+        owner_name: document.getElementById('setup-owner-name').value.trim(),
+        phone: document.getElementById('setup-phone').value.trim(),
+        currency_symbol: document.getElementById('setup-currency').value.trim() || '₹',
+        low_stock_threshold: parseInt(document.getElementById('setup-threshold').value) || 5,
+        receipt_footer: document.getElementById('setup-footer').value.trim() || 'Thank you!',
+        updated_at: new Date().toISOString()
+      };
+
+      await db.shop_profile.put(profile);
+      appState.shopProfile = profile;
+
+      // Save to Cloud Point #1
+      syncToCloud('shop_profiles', profile);
+
+      showToast('Shop profile created!', 'success');
+      showAuthenticatedApp();
+      navigateTo('screen-pos');
+    }
+
+    async function deleteProfile() {
+      const confirmDelete = confirm(
+        "⚠️ DANGER: Are you sure you want to delete your profile and wipe all shop data?\n\nThis will clear all local inventory, customer, and invoice records, and delete your profile from the cloud!"
+      );
+      if (!confirmDelete) return;
+
+      try {
+        // Delete Cloud Profile if connected to Supabase
+        if (supabase && appState.session?.loggedIn) {
+          await supabase.from('shop_profiles').delete().eq('user_id', appState.session.user.id);
+          await supabase.auth.signOut();
+        }
+
+        // Wipe Local IndexedDB Database
+        await db.products.clear();
+        await db.customers.clear();
+        await db.invoices.clear();
+        await db.shop_profile.clear();
+        await db.sync_queue.clear();
+
+        // Clear Session State & Local Storage
+        localStorage.removeItem('shopflow_session');
+        appState.session = null;
+        appState.cart = [];
+        appState.shopProfile = { id: 'default_shop', shop_name: 'ShopFlow Mart', currency_symbol: '₹', low_stock_threshold: 5 };
+
+        showWelcomeGatekeeper();
+        showToast('Profile and all shop records permanently deleted.', 'info');
+      } catch (err) {
+        console.error('Delete profile error:', err);
+        showToast(`Failed to delete profile: ${err.message}`, 'error');
+      }
+    }
+
+    // ===== SECTION: Supabase Auth Session Initialization & Sync Engine =====
+    async function initSupabaseAuth() {
+      if (!supabase) return;
+
+      // Listen to Realtime Auth State Changes
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Supabase Auth State Changed:', event, session);
+        if (session && session.user) {
+          appState.session = { loggedIn: true, guest: false, user: session.user };
+          localStorage.setItem('shopflow_session', JSON.stringify(appState.session));
+          
+          const displayName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Cloud Owner';
+          document.getElementById('user-display-name').textContent = displayName;
+          document.getElementById('user-status-label').textContent = 'Cloud Connected';
+          document.getElementById('user-avatar-initials').textContent = displayName.charAt(0).toUpperCase();
+
+          drainSyncQueue();
+          syncFromCloud();
+        }
+      });
+
+      // Verify Session on App Boot
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error || !user) {
+            console.warn('Zombie session detected. Signing out...');
+            await supabase.auth.signOut();
+            appState.session = null;
+            localStorage.removeItem('shopflow_session');
+            showWelcomeGatekeeper();
+            return;
+          }
+          appState.session = { loggedIn: true, guest: false, user: user };
+          localStorage.setItem('shopflow_session', JSON.stringify(appState.session));
+          showAuthenticatedApp();
+          syncFromCloud();
+        }
+      } catch (e) {
+        console.warn('Supabase session verification error:', e);
+      }
+    }
+
+    // ===== SECTION: Cloud Sync Logic ("Save to Cloud" Engine) =====
+    function updateSyncBadge(status) {
+      const badge = document.getElementById('sync-status-badge');
+      const text = document.getElementById('sync-status-text');
+      if (!badge || !text) return;
+
+      if (status === 'online') {
+        badge.className = 'badge badge-success';
+        text.textContent = 'Cloud Synced';
+      } else if (status === 'syncing') {
+        badge.className = 'badge badge-warning';
+        text.textContent = 'Syncing...';
+      } else {
+        badge.className = 'badge badge-accent';
+        text.textContent = appState.session?.guest ? 'Offline Mode' : 'Queued Offline';
+      }
+    }
+
+    async function syncToCloud(tableName, payload) {
+      if (!appState.session || !appState.session.loggedIn || !supabase) {
+        // Add to local Dexie sync queue
+        await db.sync_queue.add({
+          table_name: tableName,
+          operation: 'upsert',
+          payload: payload,
+          created_at: new Date().toISOString()
+        });
+        updateSyncBadge('offline');
+        return;
+      }
+
+      try {
+        updateSyncBadge('syncing');
+        const syncPayload = { ...payload, user_id: appState.session.user.id, updated_at: new Date().toISOString() };
+        const { error } = await supabase.from(tableName).upsert(syncPayload);
+        if (error) throw error;
+        updateSyncBadge('online');
+      } catch (err) {
+        console.warn(`Cloud save failed for ${tableName}, added to sync queue:`, err);
+        await db.sync_queue.add({
+          table_name: tableName,
+          operation: 'upsert',
+          payload: payload,
+          created_at: new Date().toISOString()
+        });
+        updateSyncBadge('offline');
+      }
+    }
+
+    async function drainSyncQueue() {
+      if (!appState.session || !appState.session.loggedIn || !supabase || !navigator.onLine) return;
+
+      const pending = await db.sync_queue.toArray();
+      if (pending.length === 0) return;
+
+      updateSyncBadge('syncing');
+      for (const item of pending) {
+        try {
+          const syncPayload = { ...item.payload, user_id: appState.session.user.id, updated_at: new Date().toISOString() };
+          const { error } = await supabase.from(item.table_name).upsert(syncPayload);
+          if (!error) {
+            await db.sync_queue.delete(item.localId);
+          }
+        } catch (e) {
+          console.warn('Sync queue drain item error:', e);
+        }
+      }
+      updateSyncBadge('online');
+    }
+
+    async function syncFromCloud() {
+      if (!appState.session || !appState.session.loggedIn || !supabase) {
+        showToast('Not connected to cloud account', 'info');
+        return;
+      }
+
+      updateSyncBadge('syncing');
+      showToast('Syncing with Supabase Cloud...', 'info');
+
+      try {
+        const userId = appState.session.user.id;
+
+        // Pull Shop Profile
+        const { data: cloudProfile } = await supabase.from('shop_profiles').select('*').eq('user_id', userId).single();
+        if (cloudProfile) {
+          await db.shop_profile.put(cloudProfile);
+          loadShopProfile();
+        }
+
+        // Pull Products
+        const { data: cloudProds, error: prodErr } = await supabase.from('products').select('*').eq('user_id', userId);
+        if (!prodErr && cloudProds && cloudProds.length > 0) {
+          await db.products.bulkPut(cloudProds);
+          renderInventoryTable();
+        }
+
+        // Pull Customers
+        const { data: cloudCusts, error: custErr } = await supabase.from('customers').select('*').eq('user_id', userId);
+        if (!custErr && cloudCusts && cloudCusts.length > 0) {
+          await db.customers.bulkPut(cloudCusts);
+          renderCustomersTable();
+        }
+
+        // Pull Invoices
+        const { data: cloudInvoices, error: invErr } = await supabase.from('invoices').select('*').eq('user_id', userId);
+        if (!invErr && cloudInvoices && cloudInvoices.length > 0) {
+          await db.invoices.bulkPut(cloudInvoices);
+          renderInvoicesTable();
+        }
+
+        updateSyncBadge('online');
+        showToast('Cloud database synchronized successfully!', 'success');
+      } catch (err) {
+        console.warn('Sync from cloud exception:', err);
+        updateSyncBadge('offline');
+      }
     }
 
     // ===== SECTION: Session & Screen Navigation =====
@@ -923,8 +1420,15 @@
       document.getElementById('top-bar').style.display = 'flex';
       document.getElementById('bottom-nav').classList.add('auth-active');
       
-      document.getElementById('user-display-name').textContent = appState.session.guest ? 'Guest Shop' : 'Cloud Manager';
-      document.getElementById('user-status-label').textContent = appState.session.guest ? 'Offline Mode' : 'Connected';
+      const isGuest = appState.session ? appState.session.guest : true;
+      const userObj = appState.session ? appState.session.user : null;
+      const displayName = isGuest ? 'Guest Shop' : (userObj?.user_metadata?.full_name || userObj?.email?.split('@')[0] || 'Cloud Owner');
+
+      document.getElementById('user-display-name').textContent = displayName;
+      document.getElementById('user-status-label').textContent = isGuest ? 'Offline Mode' : 'Cloud Connected';
+      document.getElementById('user-avatar-initials').textContent = displayName.charAt(0).toUpperCase();
+
+      updateSyncBadge(isGuest ? 'guest' : 'online');
 
       const initialRoute = window.location.hash.replace('#/', '') || 'pos';
       navigateTo(`screen-${initialRoute}`);
@@ -965,6 +1469,7 @@
       if (screenId === 'screen-invoices') renderInvoicesTable();
       if (screenId === 'screen-customers') renderCustomersTable();
       if (screenId === 'screen-reports') renderReports();
+      if (screenId === 'screen-settings') loadShopProfile();
     }
 
     window.addEventListener('hashchange', () => {
@@ -1121,7 +1626,7 @@
       let customerId = appState.selectedCustomer ? appState.selectedCustomer.id : null;
       let finalCustName = typedName || 'Walk-in Customer';
 
-      // Auto Create Customer if user entered new details without selecting existing
+      // Save to Cloud Point #4: Auto Create Customer
       if (!customerId && typedName) {
         const newCust = {
           id: crypto.randomUUID(),
@@ -1132,6 +1637,7 @@
           created_at: new Date().toISOString()
         };
         await db.customers.add(newCust);
+        syncToCloud('customers', newCust);
         customerId = newCust.id;
       }
 
@@ -1153,12 +1659,16 @@
       };
 
       await db.invoices.add(newInvoice);
+      // Save to Cloud Point #3: Invoice Generated
+      syncToCloud('invoices', newInvoice);
 
-      // Deduct Stock
+      // Save to Cloud Point #5: Deduct Stock
       for (const item of appState.cart) {
         const prod = await db.products.get(item.id);
         if (prod) {
-          await db.products.update(item.id, { stock_quantity: Math.max(0, prod.stock_quantity - item.quantity) });
+          const updatedStock = Math.max(0, prod.stock_quantity - item.quantity);
+          await db.products.update(item.id, { stock_quantity: updatedStock });
+          syncToCloud('products', { ...prod, stock_quantity: updatedStock });
         }
       }
 
@@ -1241,7 +1751,7 @@
           <td style="padding: 0.75rem 1rem; text-align: right;" class="mono">₹${parseFloat(p.cost_price || 0).toFixed(2)}</td>
           <td style="padding: 0.75rem 1rem; text-align: right;" class="mono">₹${parseFloat(p.sale_price).toFixed(2)}</td>
           <td style="padding: 0.75rem 1rem; text-align: center;">
-            <span class="badge ${p.stock_quantity <= p.min_stock_alert ? 'badge-danger' : 'badge-success'}">${p.stock_quantity}</span>
+            <span class="badge ${p.stock_quantity <= (p.min_stock_alert || 5) ? 'badge-danger' : 'badge-success'}">${p.stock_quantity}</span>
           </td>
           <td style="padding: 0.75rem 1rem; text-align: right;">
             <button class="btn btn-secondary btn-icon btn-edit-prod" data-id="${p.id}"><i class="fa-solid fa-pen"></i></button>
@@ -1306,8 +1816,13 @@
     // ===== SECTION: Boot & Listeners =====
     document.addEventListener('DOMContentLoaded', async () => {
       await loadSuggestions();
+      await loadShopProfile();
       initSessionState();
+      initSupabaseAuth();
       setupCustomerLookup();
+
+      // Online Event Listener to automatically drain sync queue (Save to Cloud Point #6)
+      window.addEventListener('online', drainSyncQueue);
 
       // Seed Initial Sample Products from runtime suggestions.json if present
       const prodCount = await db.products.count();
@@ -1326,6 +1841,31 @@
         await db.products.bulkAdd(seedProds);
       }
 
+      // Profile Widget Click -> Navigates to Profile Settings
+      document.getElementById('user-profile-widget')?.addEventListener('click', () => {
+        navigateTo('screen-settings');
+      });
+
+      // Settings & Setup Form Handlers (Create & Edit Profile)
+      document.getElementById('form-settings')?.addEventListener('submit', handleSaveProfile);
+      document.getElementById('form-shop-setup')?.addEventListener('submit', handleFirstTimeSetup);
+      document.getElementById('btn-delete-profile')?.addEventListener('click', deleteProfile);
+
+      document.getElementById('btn-manual-sync')?.addEventListener('click', () => {
+        drainSyncQueue();
+        syncFromCloud();
+      });
+
+      // Sync status badge click event -> triggers manual cloud sync
+      document.getElementById('sync-status-badge')?.addEventListener('click', () => {
+        if (appState.session?.loggedIn) {
+          drainSyncQueue();
+          syncFromCloud();
+        } else {
+          document.getElementById('modal-auth').classList.add('active');
+        }
+      });
+
       // Welcome Screen Button Event Handlers
       document.getElementById('btn-welcome-guest')?.addEventListener('click', () => {
         appState.session = { guest: true, loggedIn: false };
@@ -1334,23 +1874,17 @@
       });
 
       document.getElementById('btn-welcome-auth')?.addEventListener('click', () => {
+        toggleAuthMode('login');
         document.getElementById('modal-auth').classList.add('active');
       });
 
-      document.getElementById('form-auth')?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        appState.session = { guest: false, loggedIn: true };
-        localStorage.setItem('shopflow_session', JSON.stringify(appState.session));
-        document.getElementById('modal-auth').classList.remove('active');
-        showAuthenticatedApp();
-      });
+      // Auth Form & OAuth Handlers
+      document.getElementById('form-auth')?.addEventListener('submit', handleAuthSubmit);
+      document.getElementById('btn-oauth-google')?.addEventListener('click', signInWithGoogle);
+      document.getElementById('btn-forgot-password')?.addEventListener('click', handlePasswordReset);
+      document.getElementById('btn-toggle-auth-mode')?.addEventListener('click', () => toggleAuthMode());
 
-      document.getElementById('btn-logout')?.addEventListener('click', () => {
-        localStorage.removeItem('shopflow_session');
-        appState.session = null;
-        showWelcomeGatekeeper();
-        showToast('Logged out successfully', 'info');
-      });
+      document.getElementById('btn-logout')?.addEventListener('click', logout);
 
       // Navigation Link Clicks
       document.querySelectorAll('[data-target]').forEach(elem => {
@@ -1410,7 +1944,7 @@
         }
       });
 
-      // Add Product Handler
+      // Add Product Handler (Save to Cloud Point #2)
       document.getElementById('btn-add-product')?.addEventListener('click', () => {
         document.getElementById('modal-product').classList.add('active');
       });
@@ -1425,7 +1959,7 @@
           return;
         }
 
-        await db.products.add({
+        const newProd = {
           id: crypto.randomUUID(),
           name: name,
           barcode: document.getElementById('prod-barcode').value || '',
@@ -1435,7 +1969,11 @@
           stock_quantity: parseInt(document.getElementById('prod-stock').value) || 0,
           min_stock_alert: parseInt(document.getElementById('prod-threshold').value) || 5,
           is_active: true
-        });
+        };
+
+        await db.products.add(newProd);
+        // Save to Cloud Point #2
+        syncToCloud('products', newProd);
 
         document.getElementById('modal-product').classList.remove('active');
         showToast('Product saved successfully!', 'success');
@@ -1480,7 +2018,7 @@
         }
       });
 
-      // Service Worker Registration (Only for HTTP/HTTPS origins like localhost & github.io)
+      // Service Worker Registration
       if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
         navigator.serviceWorker.register('./sw.js')
           .then(reg => console.log('SW registered:', reg.scope))
