@@ -720,13 +720,17 @@
           <h2 id="top-bar-title" style="font-size: 1.25rem;">POS / Billing</h2>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
           <!-- Sync Indicator -->
           <div id="sync-status-badge" class="badge badge-success" style="cursor: pointer;"
             title="Click to trigger Manual Cloud Sync">
             <i class="fa-solid fa-cloud" style="font-size: 0.75rem;"></i>
             <span id="sync-status-text">Cloud Synced</span>
           </div>
+
+          <button id="btn-top-profile" class="btn btn-secondary btn-icon" title="Shop Profile & Settings" data-target="screen-settings">
+            <i class="fa-solid fa-user-gear"></i>
+          </button>
 
           <button id="btn-logout" class="btn btn-secondary btn-icon" title="Logout / Switch Account">
             <i class="fa-solid fa-right-from-bracket"></i>
@@ -983,8 +987,8 @@
         </div>
 
         <!-- Products Table -->
-        <div class="card" style="padding: 0; overflow: hidden;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <div class="card" style="padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
+          <table style="width: 100%; min-width: 600px; border-collapse: collapse; text-align: left;">
             <thead
               style="background: var(--clr-surface-2); border-bottom: 1px solid var(--clr-border); color: var(--clr-text-2); font-size: 0.85rem;">
               <tr>
@@ -1011,8 +1015,8 @@
             placeholder="Search by invoice number or customer phone..." style="max-width: 360px;">
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <div class="card" style="padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
+          <table style="width: 100%; min-width: 580px; border-collapse: collapse; text-align: left;">
             <thead
               style="background: var(--clr-surface-2); border-bottom: 1px solid var(--clr-border); color: var(--clr-text-2); font-size: 0.85rem;">
               <tr>
@@ -1040,8 +1044,8 @@
             Customer</button>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <div class="card" style="padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%;">
+          <table style="width: 100%; min-width: 540px; border-collapse: collapse; text-align: left;">
             <thead
               style="background: var(--clr-surface-2); border-bottom: 1px solid var(--clr-border); color: var(--clr-text-2); font-size: 0.85rem;">
               <tr>
@@ -1169,13 +1173,29 @@
   <nav id="bottom-nav">
     <a class="bottom-tab active" data-target="screen-pos"><i class="fa-solid fa-cart-shopping"></i><span>POS</span></a>
     <a class="bottom-tab" data-target="screen-inventory"><i class="fa-solid fa-boxes-stacked"></i><span>Stock</span></a>
-    <a class="bottom-tab" data-target="screen-invoices"><i
-        class="fa-solid fa-file-invoice"></i><span>Invoices</span></a>
+    <a class="bottom-tab" data-target="screen-invoices"><i class="fa-solid fa-file-invoice"></i><span>Invoices</span></a>
     <a class="bottom-tab" data-target="screen-customers"><i class="fa-solid fa-users"></i><span>CRM</span></a>
     <a class="bottom-tab" data-target="screen-reports"><i class="fa-solid fa-chart-line"></i><span>Stats</span></a>
+    <a class="bottom-tab" data-target="screen-settings"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
   </nav>
 
   <!-- MODALS -->
+  <!-- Camera Barcode Scanner Modal -->
+  <div id="modal-camera-scanner" class="modal-overlay">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-barcode" style="color: var(--clr-accent);"></i> Live Camera Barcode Scanner</h3>
+        <button id="btn-close-camera" class="btn btn-secondary modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 0.5rem; text-align: center;">
+        <div id="camera-viewport" style="width: 100%; height: 260px; background: #000; border-radius: var(--radius-md); overflow: hidden; position: relative;">
+          <!-- Quagga video stream -->
+        </div>
+        <p style="font-size: 0.8rem; color: var(--clr-text-2); margin-top: 0.75rem;">Point device camera at a product barcode to scan automatically</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Auth Modal (Email/Password + Google OAuth) -->
   <div id="modal-auth" class="modal-overlay">
     <div class="modal-box" style="max-width: 420px;">
@@ -2260,6 +2280,134 @@
       document.getElementById('kpi-transactions').textContent = invoices.length;
     }
 
+    // ===== SECTION: Real-time Product Search Suggestions =====
+    function setupProductSearch() {
+      const searchInput = document.getElementById('pos-search-input');
+      const searchResults = document.getElementById('pos-search-results');
+      if (!searchInput || !searchResults) return;
+
+      searchInput.addEventListener('input', async (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        if (!query) {
+          searchResults.style.display = 'none';
+          return;
+        }
+
+        const matches = await db.products
+          .filter(p => p.name.toLowerCase().includes(query) || (p.barcode && p.barcode.toLowerCase().includes(query)) || (p.category && p.category.toLowerCase().includes(query)))
+          .limit(10)
+          .toArray();
+
+        if (matches.length === 0) {
+          searchResults.innerHTML = `<div style="padding: 0.75rem; text-align: center; color: var(--clr-text-3); font-size: 0.85rem;">No matching products found</div>`;
+          searchResults.style.display = 'block';
+          return;
+        }
+
+        searchResults.innerHTML = matches.map(p => `
+          <div class="pos-search-item" data-id="${p.id}" style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--clr-border); cursor: pointer; border-radius: var(--radius-sm);">
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">${p.name}</div>
+              <div style="font-size: 0.75rem; color: var(--clr-text-2); display: flex; gap: 0.5rem; margin-top: 2px;">
+                <span class="badge badge-accent">${p.category || 'General'}</span>
+                <span>Stock: ${p.stock_quantity}</span>
+                ${p.barcode ? `<span>Barcode: ${p.barcode}</span>` : ''}
+              </div>
+            </div>
+            <div class="mono" style="font-weight: 700; color: var(--clr-accent-h); font-size: 1rem;">₹${parseFloat(p.sale_price).toFixed(2)}</div>
+          </div>
+        `).join('');
+
+        searchResults.style.display = 'block';
+      });
+
+      searchResults.addEventListener('click', async (e) => {
+        const item = e.target.closest('.pos-search-item');
+        if (item) {
+          const id = item.getAttribute('data-id');
+          const product = await db.products.get(id);
+          if (product) {
+            addToCart(product);
+            searchInput.value = '';
+            searchResults.style.display = 'none';
+          }
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          searchResults.style.display = 'none';
+        }
+      });
+    }
+
+    // ===== SECTION: Camera Barcode Scanner Controller =====
+    function startCameraScanner() {
+      const viewport = document.getElementById('camera-viewport');
+      if (!viewport || !window.Quagga) {
+        showToast('Camera Barcode Scanner engine not loaded', 'error');
+        return;
+      }
+
+      document.getElementById('modal-camera-scanner').classList.add('active');
+
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: viewport,
+          constraints: {
+            facingMode: "environment"
+          }
+        },
+        decoder: {
+          readers: [
+            "code_128_reader",
+            "ean_reader",
+            "ean_8_reader",
+            "code_39_reader",
+            "upc_reader",
+            "upc_e_reader"
+          ]
+        }
+      }, (err) => {
+        if (err) {
+          console.error("Quagga Init Error:", err);
+          document.getElementById('modal-camera-scanner').classList.remove('active');
+          showToast(`Camera Access Error: ${err.message || 'Permission denied or camera unavailable'}`, 'error');
+          return;
+        }
+        Quagga.start();
+      });
+
+      Quagga.offDetected();
+      Quagga.onDetected(async (result) => {
+        const code = result.codeResult?.code;
+        if (code) {
+          stopCameraScanner();
+          showToast(`Scanned Barcode: ${code}`, 'success');
+
+          const match = await db.products.filter(p => p.barcode === code).first();
+          if (match) {
+            addToCart(match);
+          } else {
+            const searchInput = document.getElementById('pos-search-input');
+            if (searchInput) {
+              searchInput.value = code;
+              searchInput.dispatchEvent(new Event('input'));
+            }
+          }
+        }
+      });
+    }
+
+    function stopCameraScanner() {
+      if (window.Quagga) {
+        try { Quagga.stop(); } catch(e) {}
+      }
+      document.getElementById('modal-camera-scanner').classList.remove('active');
+    }
+
     // ===== SECTION: Boot & Listeners =====
     document.addEventListener('DOMContentLoaded', async () => {
       await loadSuggestions();
@@ -2267,6 +2415,12 @@
       initSessionState();
       initSupabaseAuth();
       setupCustomerLookup();
+      setupProductSearch();
+
+      // Camera Barcode Scanner Listeners
+      document.getElementById('btn-camera-scan')?.addEventListener('click', startCameraScanner);
+      document.getElementById('btn-close-camera')?.addEventListener('click', stopCameraScanner);
+      document.getElementById('btn-top-profile')?.addEventListener('click', () => navigateTo('screen-settings'));
 
       // Online Event Listener to automatically drain sync queue (Save to Cloud Point #6)
       window.addEventListener('online', drainSyncQueue);
