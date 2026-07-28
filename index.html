@@ -2251,18 +2251,20 @@
             renderCustomersTable();
           }
 
-          // Pull Invoices & Joined Invoice Items
-          const { data: cloudInvoices, error: invErr } = await supabase.from('invoices').select('*, invoice_items(*)').eq('user_id', userId);
+          // Pull Invoices
+          const { data: cloudInvoices, error: invErr } = await supabase.from('invoices').select('*').eq('user_id', userId);
           if (!invErr && cloudInvoices && cloudInvoices.length > 0) {
-            const invoicesToStore = cloudInvoices.map(inv => ({
-              ...inv,
-              items: (inv.invoice_items || []).map(item => ({
-                id: item.product_id,
-                name: item.product_name,
-                quantity: item.quantity,
-                sale_price: parseFloat(item.unit_price) || 0
-              }))
-            }));
+            const invoicesToStore = cloudInvoices.map(inv => {
+              let items = inv.items;
+              if (typeof items === 'string') {
+                try { items = JSON.parse(items); } catch(e) { items = []; }
+              }
+              if (!Array.isArray(items)) items = [];
+              return {
+                ...inv,
+                items: items
+              };
+            });
             await db.invoices.bulkPut(invoicesToStore);
             renderInvoicesTable();
           }
@@ -2632,12 +2634,18 @@
       }
 
       function openInvoicePreviewModal(invoice) {
+        if (!invoice) return;
         appState.activeInvoice = invoice;
-        document.getElementById('modal-invoice-number-title').textContent = `Receipt — ${invoice.invoice_number}`;
+        document.getElementById('modal-invoice-number-title').textContent = `Receipt — ${invoice.invoice_number || ''}`;
 
         const renderArea = document.getElementById('invoice-receipt-render-area');
 
-        const items = invoice.items || [];
+        let items = invoice.items;
+        if (typeof items === 'string') {
+          try { items = JSON.parse(items); } catch(e) { items = []; }
+        }
+        if (!Array.isArray(items)) items = [];
+
         const itemsHtml = items.map(i => {
           const price = parseFloat(i.sale_price) || 0;
           const qty = parseInt(i.quantity) || 1;
