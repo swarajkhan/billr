@@ -1919,7 +1919,19 @@
         const userId = appState.session.user.id;
         const syncPayload = formatPayloadForSupabase(tableName, payload, userId);
 
-        const { error } = await supabase.from(tableName).upsert(syncPayload);
+        let { error } = await supabase.from(tableName).upsert(syncPayload);
+
+        // Handle JWT clock-skew: server says token is from the future → force-refresh & retry once
+        if (error && (error.code === 'PGRST303' || (error.message && error.message.includes('JWT issued at future')))) {
+          console.warn('JWT clock skew detected — refreshing session and retrying...');
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData?.session) appState.session = { ...appState.session, ...refreshData.session };
+          // Small delay to let the server clock settle
+          await new Promise(r => setTimeout(r, 1500));
+          const retry = await supabase.from(tableName).upsert(syncPayload);
+          error = retry.error;
+        }
+
         if (error) throw error;
 
         // Non-blocking sync to relational invoice_items table
@@ -2558,9 +2570,9 @@
           const nameLines = doc.splitTextToSize(name, col.qty - col.item - 4);
           doc.text(nameLines, col.item, y);
           doc.text(String(qty), col.qty, y, { align: 'center' });
-          doc.text('\u20B9' + price.toFixed(2), col.price, y, { align: 'right' });
+          doc.text('Rs.' + price.toFixed(2), col.price, y, { align: 'right' });
           doc.setFont('helvetica', 'bold');
-          doc.text('\u20B9' + lineTotal.toFixed(2), col.total, y, { align: 'right' });
+          doc.text('Rs.' + lineTotal.toFixed(2), col.total, y, { align: 'right' });
           doc.setFont('helvetica', 'normal');
           y += nameLines.length * 5 + 1;
 
@@ -2584,7 +2596,7 @@
           doc.setFont('helvetica', bold ? 'bold' : 'normal');
           doc.setFontSize(bold ? 11 : 9);
           doc.text(label, pageW - margin - 70, y);
-          doc.text('\u20B9' + value.toFixed(2), pageW - margin, y, { align: 'right' });
+          doc.text('Rs.' + Math.abs(value).toFixed(2), pageW - margin, y, { align: 'right' });
           y += bold ? 7 : 5;
         };
 
