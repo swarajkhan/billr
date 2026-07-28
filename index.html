@@ -2103,6 +2103,8 @@
       }
 
       async function syncToCloud(tableName, payload) {
+        if (tableName === 'invoice_items') return true; // invoice_items synced relationally with invoices
+
         if (!appState.session || !appState.session.loggedIn || !supabase) {
           await db.sync_queue.add({
             table_name: tableName,
@@ -2119,7 +2121,7 @@
           const userId = appState.session.user.id;
           const syncPayload = formatPayloadForSupabase(tableName, payload, userId);
 
-          let { error } = await supabase.from(tableName).upsert(syncPayload);
+          let { error } = await supabase.from(tableName).upsert(syncPayload, { onConflict: 'id' });
 
           // Handle JWT clock-skew: server says token is from the future → force-refresh & retry once
           if (error && (error.code === 'PGRST303' || (error.message && error.message.includes('JWT issued at future')))) {
@@ -2127,7 +2129,7 @@
             const { data: refreshData } = await supabase.auth.refreshSession();
             if (refreshData?.session) appState.session = { ...appState.session, ...refreshData.session };
             await new Promise(r => setTimeout(r, 1500));
-            const retry = await supabase.from(tableName).upsert(syncPayload);
+            const retry = await supabase.from(tableName).upsert(syncPayload, { onConflict: 'id' });
             error = retry.error;
           }
 
@@ -2137,15 +2139,15 @@
             const custLoc = await db.customers.get(syncPayload.customer_id);
             if (custLoc) {
               const custPayload = formatPayloadForSupabase('customers', custLoc, userId);
-              await supabase.from('customers').upsert(custPayload);
+              await supabase.from('customers').upsert(custPayload, { onConflict: 'id' });
             }
-            const retryInv = await supabase.from(tableName).upsert(syncPayload);
+            const retryInv = await supabase.from(tableName).upsert(syncPayload, { onConflict: 'id' });
             if (!retryInv.error) {
               error = null;
             } else {
               // Fallback: strip customer_id for cloud payload while keeping customer_name & customer_phone intact
               const safePayload = { ...syncPayload, customer_id: null };
-              const safeRetry = await supabase.from(tableName).upsert(safePayload);
+              const safeRetry = await supabase.from(tableName).upsert(safePayload, { onConflict: 'id' });
               error = safeRetry.error;
             }
           }
@@ -2182,7 +2184,6 @@
             created_at: new Date().toISOString()
           });
           updateSyncBadge('offline');
-          showToast(`Cloud sync for ${tableName} saved offline queue. Click Refresh/Sync to retry.`, 'warning');
           return false;
         }
       }
@@ -2190,28 +2191,38 @@
       async function drainSyncQueue() {
         if (!appState.session || !appState.session.loggedIn || !supabase || !navigator.onLine) return;
 
+        // Auto purge any legacy invoice_items from sync_queue to clear old stuck conflicts
+        try {
+          await db.sync_queue.filter(sq => sq.table_name === 'invoice_items').delete();
+        } catch(eClean) {}
+
         const pending = await db.sync_queue.toArray();
         if (pending.length === 0) return;
 
         updateSyncBadge('syncing');
         for (const item of pending) {
           try {
+            if (item.table_name === 'invoice_items') {
+              await db.sync_queue.delete(item.localId);
+              continue;
+            }
+
             const userId = appState.session.user.id;
             const syncPayload = formatPayloadForSupabase(item.table_name, item.payload, userId);
-            let { error } = await supabase.from(item.table_name).upsert(syncPayload);
+            let { error } = await supabase.from(item.table_name).upsert(syncPayload, { onConflict: 'id' });
 
             if (error && error.code === '23503' && item.table_name === 'invoices' && syncPayload.customer_id) {
               const custLoc = await db.customers.get(syncPayload.customer_id);
               if (custLoc) {
                 const custPayload = formatPayloadForSupabase('customers', custLoc, userId);
-                await supabase.from('customers').upsert(custPayload);
+                await supabase.from('customers').upsert(custPayload, { onConflict: 'id' });
               }
-              const retryInv = await supabase.from(item.table_name).upsert(syncPayload);
+              const retryInv = await supabase.from(item.table_name).upsert(syncPayload, { onConflict: 'id' });
               if (!retryInv.error) {
                 error = null;
               } else {
                 const safePayload = { ...syncPayload, customer_id: null };
-                const safeRetry = await supabase.from(item.table_name).upsert(safePayload);
+                const safeRetry = await supabase.from(item.table_name).upsert(safePayload, { onConflict: 'id' });
                 error = safeRetry.error;
               }
             }
@@ -2236,6 +2247,12 @@
               }
               await db.sync_queue.delete(item.localId);
             }
+          } catch (e) {
+            console.warn('Sync queue drain item error:', e);
+          }
+        }
+        updateSyncBadge('online');
+      }
           } catch (e) {
             console.warn('Sync queue drain item error:', e);
           }
