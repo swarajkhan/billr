@@ -1843,18 +1843,22 @@
         const { error } = await supabase.from(tableName).upsert(syncPayload);
         if (error) throw error;
 
-        // If saving an invoice, save line items to invoice_items table
+        // Non-blocking sync to relational invoice_items table
         if (tableName === 'invoices' && payload.items && payload.items.length > 0) {
-          const dbItems = payload.items.map(item => ({
-            id: crypto.randomUUID(),
-            invoice_id: payload.id,
-            product_id: item.id && item.id.length === 36 ? item.id : null,
-            product_name: item.name,
-            quantity: item.quantity,
-            unit_price: parseFloat(item.sale_price) || 0,
-            total: (parseFloat(item.sale_price) || 0) * item.quantity
-          }));
-          await supabase.from('invoice_items').upsert(dbItems);
+          try {
+            const dbItems = payload.items.map(item => ({
+              id: crypto.randomUUID(),
+              invoice_id: payload.id,
+              product_id: (item.id && item.id.length === 36) ? item.id : null,
+              product_name: item.name || 'Product Item',
+              quantity: parseInt(item.quantity) || 1,
+              unit_price: parseFloat(item.sale_price) || 0,
+              total: (parseFloat(item.sale_price) || 0) * (parseInt(item.quantity) || 1)
+            }));
+            await supabase.from('invoice_items').upsert(dbItems, { onConflict: 'id' });
+          } catch (errItems) {
+            console.warn('invoice_items table sync notice (non-fatal):', errItems);
+          }
         }
 
         updateSyncBadge('online');
@@ -1885,16 +1889,20 @@
 
           if (!error) {
             if (item.table_name === 'invoices' && item.payload.items && item.payload.items.length > 0) {
-              const dbItems = item.payload.items.map(i => ({
-                id: crypto.randomUUID(),
-                invoice_id: item.payload.id,
-                product_id: i.id && i.id.length === 36 ? i.id : null,
-                product_name: i.name,
-                quantity: i.quantity,
-                unit_price: parseFloat(i.sale_price) || 0,
-                total: (parseFloat(i.sale_price) || 0) * i.quantity
-              }));
-              await supabase.from('invoice_items').upsert(dbItems);
+              try {
+                const dbItems = item.payload.items.map(i => ({
+                  id: crypto.randomUUID(),
+                  invoice_id: item.payload.id,
+                  product_id: (i.id && i.id.length === 36) ? i.id : null,
+                  product_name: i.name || 'Product Item',
+                  quantity: parseInt(i.quantity) || 1,
+                  unit_price: parseFloat(i.sale_price) || 0,
+                  total: (parseFloat(i.sale_price) || 0) * (parseInt(i.quantity) || 1)
+                }));
+                await supabase.from('invoice_items').upsert(dbItems, { onConflict: 'id' });
+              } catch (eItems) {
+                console.warn('invoice_items queue drain notice (non-fatal):', eItems);
+              }
             }
             await db.sync_queue.delete(item.localId);
           }
@@ -2865,11 +2873,25 @@
         }
       });
 
-      // Service Worker Registration
+      // Service Worker Update Strategy (Non-intrusive: installs silently, activates on refresh)
       if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('SW registered:', reg.scope))
-          .catch(err => console.error('SW failed:', err));
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          console.log('SW registered:', reg.scope);
+
+          // Silently check GitHub Pages for updates in background
+          reg.update();
+
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('New release ready on GitHub. Will take effect on next refresh.');
+                showToast('New update available! Refresh whenever you are ready.', 'info');
+              }
+            });
+          });
+        }).catch(err => console.error('SW failed:', err));
       }
 
       renderCart();
