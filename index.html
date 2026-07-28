@@ -1484,8 +1484,14 @@
               </div>
               <div>
                 <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem;">Category</label>
-                <select id="prod-category" class="input-field"></select>
+                <input type="text" id="prod-category" class="input-field" list="category-list" placeholder="Select or type new">
+                <datalist id="category-list"></datalist>
               </div>
+            </div>
+            <div style="margin-bottom: 1rem;">
+              <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem;">Sub Category (Optional)</label>
+              <input type="text" id="prod-sub-category" class="input-field" list="sub-category-list" placeholder="Select or type new">
+              <datalist id="sub-category-list"></datalist>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
               <div>
@@ -1596,7 +1602,7 @@
       // ===== SECTION: Dexie / IndexedDB =====
       const db = new Dexie('ShopFlowProDB');
       db.version(1).stores({
-        products: '&id, barcode, name, category, stock_quantity, is_active, updated_at',
+        products: '&id, barcode, name, category, sub_category, stock_quantity, is_active, updated_at',
         customers: '&id, name, phone, updated_at',
         invoices: '&id, invoice_number, customer_id, created_at, synced',
         invoice_items: '&id, invoice_id, product_id',
@@ -1656,9 +1662,9 @@
       }
 
       function populateCategorySelect() {
-        const catSelect = document.getElementById('prod-category');
-        if (!catSelect) return;
-        catSelect.innerHTML = suggestionsData.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        const catList = document.getElementById('category-list');
+        if (!catList) return;
+        catList.innerHTML = suggestionsData.categories.map(c => `<option value="${c}">${c}</option>`).join('');
       }
 
       // ===== SECTION: Auth Mode & Modal Handlers =====
@@ -2077,6 +2083,7 @@
             barcode: payload.barcode || null,
             name: payload.name,
             category: payload.category || 'General',
+            sub_category: payload.sub_category || '',
             unit: payload.unit || 'pcs',
             cost_price: parseFloat(payload.cost_price) || 0,
             sale_price: parseFloat(payload.sale_price) || 0,
@@ -3393,6 +3400,7 @@
             id: crypto.randomUUID(),
             name: p.name,
             category: p.category,
+            sub_category: p.sub_category || '',
             unit: p.unit,
             cost_price: Math.round(p.sale_price * 0.75),
             sale_price: p.sale_price,
@@ -3499,6 +3507,25 @@
             const id = viewInvBtn.getAttribute('data-id');
             const inv = await db.invoices.get(id);
             if (inv) openInvoicePreviewModal(inv);
+          }
+
+          const editProdBtn = e.target.closest('.btn-edit-prod');
+          if (editProdBtn) {
+            const id = editProdBtn.getAttribute('data-id');
+            const prod = await db.products.get(id);
+            if (prod) {
+              document.getElementById('modal-product-title').textContent = 'Edit Product';
+              document.getElementById('prod-id').value = prod.id;
+              document.getElementById('prod-name').value = prod.name;
+              document.getElementById('prod-barcode').value = prod.barcode || '';
+              document.getElementById('prod-category').value = prod.category || '';
+              document.getElementById('prod-sub-category').value = prod.sub_category || '';
+              document.getElementById('prod-cost-price').value = prod.cost_price || 0;
+              document.getElementById('prod-sale-price').value = prod.sale_price || 0;
+              document.getElementById('prod-stock').value = prod.stock_quantity || 0;
+              document.getElementById('prod-threshold').value = prod.min_stock_alert || 5;
+              document.getElementById('modal-product').classList.add('active');
+            }
           }
 
           const editCustBtn = e.target.closest('.btn-edit-cust');
@@ -3608,11 +3635,15 @@
 
         // Add Product Handler (Save to Cloud Point #2)
         document.getElementById('btn-add-product')?.addEventListener('click', () => {
+          document.getElementById('form-product').reset();
+          document.getElementById('prod-id').value = '';
+          document.getElementById('modal-product-title').textContent = 'Add New Product';
           document.getElementById('modal-product').classList.add('active');
         });
 
         document.getElementById('btn-save-product')?.addEventListener('click', async (e) => {
           e.preventDefault();
+          const idInput = document.getElementById('prod-id').value;
           const name = document.getElementById('prod-name').value;
           const salePrice = parseFloat(document.getElementById('prod-sale-price').value);
 
@@ -3622,10 +3653,11 @@
           }
 
           const newProd = {
-            id: crypto.randomUUID(),
+            id: idInput || crypto.randomUUID(),
             name: name,
             barcode: document.getElementById('prod-barcode').value || '',
             category: document.getElementById('prod-category').value || 'General',
+            sub_category: document.getElementById('prod-sub-category').value || '',
             cost_price: parseFloat(document.getElementById('prod-cost-price').value) || 0,
             sale_price: salePrice,
             stock_quantity: parseInt(document.getElementById('prod-stock').value) || 0,
@@ -3633,12 +3665,17 @@
             is_active: true
           };
 
-          await db.products.add(newProd);
+          if (idInput) {
+            await db.products.put(newProd);
+          } else {
+            await db.products.add(newProd);
+          }
+          
           // Save to Cloud Point #2
           syncToCloud('products', newProd);
 
           document.getElementById('modal-product').classList.remove('active');
-          showToast('Product saved successfully!', 'success');
+          showToast(idInput ? 'Product updated successfully!' : 'Product saved successfully!', 'success');
           renderInventoryTable();
         });
 
