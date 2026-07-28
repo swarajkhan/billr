@@ -178,8 +178,16 @@
       transform: scale(0.97);
     }
 
-    .btn:hover {
-      transform: translateY(-1px);
+    @media (hover: hover) {
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+      .btn-primary:hover {
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+      }
+      .btn-secondary:hover {
+        background: var(--clr-border);
+      }
     }
 
     .btn-primary {
@@ -187,18 +195,10 @@
       color: #fff;
     }
 
-    .btn-primary:hover {
-      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-    }
-
     .btn-secondary {
       background: var(--clr-surface-2);
       color: var(--clr-text-1);
       border-color: var(--clr-border);
-    }
-
-    .btn-secondary:hover {
-      background: var(--clr-border);
     }
 
     .btn-success {
@@ -249,7 +249,14 @@
       cursor: pointer;
     }
 
-    .nav-item:hover,
+    @media (hover: hover) {
+      .nav-item:hover {
+        color: var(--clr-text-1);
+        background: rgba(99, 102, 241, 0.1);
+        border-left-color: var(--clr-accent);
+      }
+    }
+
     .nav-item.active {
       color: var(--clr-text-1);
       background: rgba(99, 102, 241, 0.1);
@@ -302,8 +309,10 @@
       transition: var(--transition);
     }
 
-    .card:hover {
-      border-color: var(--clr-border-light);
+    @media (hover: hover) {
+      .card:hover {
+        border-color: var(--clr-border-light);
+      }
     }
 
     .badge {
@@ -3528,6 +3537,14 @@
             }
           }
 
+          const addProdBtn = e.target.closest('#btn-add-product');
+          if (addProdBtn) {
+            document.getElementById('form-product').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('modal-product-title').textContent = 'Add New Product';
+            document.getElementById('modal-product').classList.add('active');
+          }
+
           const editCustBtn = e.target.closest('.btn-edit-cust');
           if (editCustBtn) {
             const id = editCustBtn.getAttribute('data-id');
@@ -3631,14 +3648,6 @@
           syncToCloud('customers', custData);
           document.getElementById('modal-customer').classList.remove('active');
           renderCustomersTable();
-        });
-
-        // Add Product Handler (Save to Cloud Point #2)
-        document.getElementById('btn-add-product')?.addEventListener('click', () => {
-          document.getElementById('form-product').reset();
-          document.getElementById('prod-id').value = '';
-          document.getElementById('modal-product-title').textContent = 'Add New Product';
-          document.getElementById('modal-product').classList.add('active');
         });
 
         document.getElementById('btn-save-product')?.addEventListener('click', async (e) => {
