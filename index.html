@@ -1749,9 +1749,82 @@
       }
     }
 
+    // ===== SECTION: Supabase Schema Sanitization & Payload Formatting =====
+    function formatPayloadForSupabase(tableName, payload, userId) {
+      if (tableName === 'invoices') {
+        return {
+          id: payload.id,
+          user_id: userId,
+          invoice_number: payload.invoice_number,
+          customer_id: (payload.customer_id && payload.customer_id.length === 36) ? payload.customer_id : null,
+          customer_name: payload.customer_name || 'Walk-in Customer',
+          customer_phone: payload.customer_phone || '',
+          subtotal: parseFloat(payload.subtotal) || 0,
+          discount_type: payload.discount_type || 'none',
+          discount_value: parseFloat(payload.discount_value) || 0,
+          tax_percent: parseFloat(payload.tax_percent) || 0,
+          tax_amount: parseFloat(payload.tax_amount) || 0,
+          total_amount: parseFloat(payload.total_amount) || 0,
+          amount_paid: parseFloat(payload.amount_paid || payload.total_amount) || 0,
+          payment_method: payload.payment_method || 'Cash',
+          items: payload.items || [],
+          notes: payload.notes || null,
+          created_at: payload.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      }
+
+      if (tableName === 'shop_profiles') {
+        const data = {
+          user_id: userId,
+          shop_name: payload.shop_name || 'My Shop',
+          owner_name: payload.owner_name || '',
+          phone: payload.phone || '',
+          currency_symbol: payload.currency_symbol || '₹',
+          low_stock_threshold: parseInt(payload.low_stock_threshold) || 5,
+          receipt_footer: payload.receipt_footer || 'Thank you for your purchase!',
+          updated_at: new Date().toISOString()
+        };
+        if (payload.id && payload.id !== 'default_shop') {
+          data.id = payload.id;
+        }
+        return data;
+      }
+
+      if (tableName === 'products') {
+        return {
+          id: payload.id,
+          user_id: userId,
+          barcode: payload.barcode || null,
+          name: payload.name,
+          category: payload.category || 'General',
+          unit: payload.unit || 'pcs',
+          cost_price: parseFloat(payload.cost_price) || 0,
+          sale_price: parseFloat(payload.sale_price) || 0,
+          stock_quantity: parseInt(payload.stock_quantity) || 0,
+          min_stock_alert: parseInt(payload.min_stock_alert || payload.min_stock_threshold) || 5,
+          is_active: payload.is_active !== undefined ? payload.is_active : true,
+          updated_at: new Date().toISOString()
+        };
+      }
+
+      if (tableName === 'customers') {
+        return {
+          id: payload.id,
+          user_id: userId,
+          name: payload.name,
+          phone: payload.phone || null,
+          total_purchases: parseFloat(payload.total_purchases) || 0,
+          visit_count: parseInt(payload.visit_count) || 0,
+          updated_at: new Date().toISOString()
+        };
+      }
+
+      return { ...payload, user_id: userId, updated_at: new Date().toISOString() };
+    }
+
     async function syncToCloud(tableName, payload) {
       if (!appState.session || !appState.session.loggedIn || !supabase) {
-        // Add to local Dexie sync queue
         await db.sync_queue.add({
           table_name: tableName,
           operation: 'upsert',
@@ -1764,23 +1837,26 @@
 
       try {
         updateSyncBadge('syncing');
-        const syncPayload = { ...payload, user_id: appState.session.user.id, updated_at: new Date().toISOString() };
+        const userId = appState.session.user.id;
+        const syncPayload = formatPayloadForSupabase(tableName, payload, userId);
+        
         const { error } = await supabase.from(tableName).upsert(syncPayload);
+        if (error) throw error;
 
-        if (error) {
-          // Schema Fallback if 'items' column is missing in Supabase invoices table
-          if (error.code === 'PGRST204' && tableName === 'invoices' && syncPayload.items) {
-            console.warn("Supabase 'invoices' table missing 'items' column. Retrying without items column...");
-            const fallbackPayload = { ...syncPayload };
-            delete fallbackPayload.items;
-            const { error: fallbackErr } = await supabase.from(tableName).upsert(fallbackPayload);
-            if (!fallbackErr) {
-              updateSyncBadge('online');
-              return;
-            }
-          }
-          throw error;
+        // If saving an invoice, save line items to invoice_items table
+        if (tableName === 'invoices' && payload.items && payload.items.length > 0) {
+          const dbItems = payload.items.map(item => ({
+            id: crypto.randomUUID(),
+            invoice_id: payload.id,
+            product_id: item.id && item.id.length === 36 ? item.id : null,
+            product_name: item.name,
+            quantity: item.quantity,
+            unit_price: parseFloat(item.sale_price) || 0,
+            total: (parseFloat(item.sale_price) || 0) * item.quantity
+          }));
+          await supabase.from('invoice_items').upsert(dbItems);
         }
+
         updateSyncBadge('online');
       } catch (err) {
         console.warn(`Cloud save failed for ${tableName}, added to sync queue:`, err);
@@ -1803,9 +1879,23 @@
       updateSyncBadge('syncing');
       for (const item of pending) {
         try {
-          const syncPayload = { ...item.payload, user_id: appState.session.user.id, updated_at: new Date().toISOString() };
+          const userId = appState.session.user.id;
+          const syncPayload = formatPayloadForSupabase(item.table_name, item.payload, userId);
           const { error } = await supabase.from(item.table_name).upsert(syncPayload);
+
           if (!error) {
+            if (item.table_name === 'invoices' && item.payload.items && item.payload.items.length > 0) {
+              const dbItems = item.payload.items.map(i => ({
+                id: crypto.randomUUID(),
+                invoice_id: item.payload.id,
+                product_id: i.id && i.id.length === 36 ? i.id : null,
+                product_name: i.name,
+                quantity: i.quantity,
+                unit_price: parseFloat(i.sale_price) || 0,
+                total: (parseFloat(i.sale_price) || 0) * i.quantity
+              }));
+              await supabase.from('invoice_items').upsert(dbItems);
+            }
             await db.sync_queue.delete(item.localId);
           }
         } catch (e) {
@@ -1827,10 +1917,10 @@
       try {
         const userId = appState.session.user.id;
 
-        // Pull Shop Profile (Using maybeSingle to prevent HTTP 406 when no profile exists yet)
+        // Pull Shop Profile
         const { data: cloudProfile, error: profileErr } = await supabase.from('shop_profiles').select('*').eq('user_id', userId).maybeSingle();
         if (!profileErr && cloudProfile) {
-          await db.shop_profile.put(cloudProfile);
+          await db.shop_profile.put({ ...cloudProfile, id: 'default_shop' });
           loadShopProfile();
         }
 
@@ -1848,10 +1938,19 @@
           renderCustomersTable();
         }
 
-        // Pull Invoices
-        const { data: cloudInvoices, error: invErr } = await supabase.from('invoices').select('*').eq('user_id', userId);
+        // Pull Invoices & Joined Invoice Items
+        const { data: cloudInvoices, error: invErr } = await supabase.from('invoices').select('*, invoice_items(*)').eq('user_id', userId);
         if (!invErr && cloudInvoices && cloudInvoices.length > 0) {
-          await db.invoices.bulkPut(cloudInvoices);
+          const invoicesToStore = cloudInvoices.map(inv => ({
+            ...inv,
+            items: (inv.invoice_items || []).map(item => ({
+              id: item.product_id,
+              name: item.product_name,
+              quantity: item.quantity,
+              sale_price: parseFloat(item.unit_price) || 0
+            }))
+          }));
+          await db.invoices.bulkPut(invoicesToStore);
           renderInvoicesTable();
         }
 
@@ -2117,10 +2216,22 @@
 
       const invNum = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
 
-      let finalPayMethod = appState.paymentMethod || 'cash';
-      if (finalPayMethod === 'other') {
-        const customNote = document.getElementById('pos-payment-other-note').value.trim();
-        finalPayMethod = customNote || 'Other';
+      let finalPayMethod = 'Cash';
+      let customNote = '';
+      const selectedMethod = appState.paymentMethod || 'cash';
+
+      if (selectedMethod === 'cash') {
+        finalPayMethod = 'Cash';
+      } else if (selectedMethod === 'upi') {
+        finalPayMethod = 'UPI';
+      } else if (selectedMethod === 'other') {
+        const otherInput = document.getElementById('pos-payment-other-note')?.value.trim();
+        if (otherInput) {
+          finalPayMethod = `Other - ${otherInput}`;
+          customNote = otherInput;
+        } else {
+          finalPayMethod = 'Other';
+        }
       }
 
       const newInvoice = {
@@ -2130,10 +2241,14 @@
         customer_name: finalCustName,
         customer_phone: typedPhone || '',
         subtotal: subtotal,
+        discount_type: appState.discountType === 'percent' ? 'percent' : (discountAmount > 0 ? 'flat' : 'none'),
         discount_value: discountAmount,
+        tax_percent: taxPercent,
         tax_amount: taxAmount,
         total_amount: grandTotal,
+        amount_paid: grandTotal,
         payment_method: finalPayMethod,
+        notes: customNote || undefined,
         items: [...appState.cart],
         created_at: new Date().toISOString()
       };
@@ -2168,45 +2283,61 @@
       document.getElementById('modal-invoice-number-title').textContent = `Receipt — ${invoice.invoice_number}`;
 
       const renderArea = document.getElementById('invoice-receipt-render-area');
+      
+      const items = invoice.items || [];
+      const itemsHtml = items.map(i => {
+        const price = parseFloat(i.sale_price) || 0;
+        const qty = parseInt(i.quantity) || 1;
+        const lineTotal = price * qty;
+        return `
+          <tr style="border-bottom: 1px solid #e2e8f0; color: #0f172a;">
+            <td style="padding: 6px 8px; text-align: left; color: #0f172a; font-weight: 500;">${i.name || 'Product Item'}</td>
+            <td style="padding: 6px 8px; text-align: center; color: #0f172a;">${qty}</td>
+            <td style="padding: 6px 8px; text-align: right; color: #0f172a;" class="mono">₹${price.toFixed(2)}</td>
+            <td style="padding: 6px 8px; text-align: right; color: #0f172a; font-weight: 600;" class="mono">₹${lineTotal.toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const subtotal = parseFloat(invoice.subtotal) || 0;
+      const discount = parseFloat(invoice.discount_value) || 0;
+      const tax = parseFloat(invoice.tax_amount) || 0;
+      const grandTotal = parseFloat(invoice.total_amount) || 0;
+
       renderArea.innerHTML = `
-        <div style="text-align: center; margin-bottom: 1.25rem;">
-          <h2 style="margin: 0; color: #0f172a; font-size: 1.4rem;">${appState.shopProfile.shop_name}</h2>
-          <div style="color: #64748b; font-size: 0.8rem; margin-top: 4px;">Date: ${new Date(invoice.created_at).toLocaleString()}</div>
-          <div style="font-weight: 700; color: #6366f1; margin-top: 4px;">${invoice.invoice_number}</div>
-        </div>
+        <div style="background: #ffffff; color: #0f172a; padding: 1.25rem; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="text-align: center; margin-bottom: 1.25rem;">
+            <h2 style="margin: 0; color: #0f172a; font-size: 1.4rem; font-weight: 700;">${appState.shopProfile?.shop_name || 'ShopFlow Mart'}</h2>
+            <div style="color: #64748b; font-size: 0.8rem; margin-top: 4px;">Date: ${new Date(invoice.created_at || Date.now()).toLocaleString()}</div>
+            <div style="font-weight: 700; color: #4f46e5; margin-top: 4px; font-size: 1rem;">${invoice.invoice_number}</div>
+          </div>
 
-        <div style="margin-bottom: 1rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.5rem; color: #334155;">
-          <div><strong>Customer:</strong> ${invoice.customer_name}</div>
-          ${invoice.customer_phone ? `<div><strong>Phone:</strong> ${invoice.customer_phone}</div>` : ''}
-          <div><strong>Payment:</strong> ${invoice.payment_method.toUpperCase()}</div>
-        </div>
+          <div style="margin-bottom: 1rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.75rem; color: #334155; font-size: 0.85rem; line-height: 1.5;">
+            <div><strong>Customer:</strong> ${invoice.customer_name || 'Walk-in Customer'}</div>
+            ${invoice.customer_phone ? `<div><strong>Phone:</strong> ${invoice.customer_phone}</div>` : ''}
+            <div><strong>Payment Method:</strong> ${(invoice.payment_method || 'cash').toUpperCase()}</div>
+          </div>
 
-        <table>
-          <thead>
-            <tr style="background: #f1f5f9;">
-              <th>Item</th>
-              <th style="text-align: center;">Qty</th>
-              <th style="text-align: right;">Price</th>
-              <th style="text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(invoice.items || []).map(i => `
-              <tr>
-                <td>${i.name}</td>
-                <td style="text-align: center;">${i.quantity}</td>
-                <td style="text-align: right;">₹${i.sale_price.toFixed(2)}</td>
-                <td style="text-align: right;">₹${(i.sale_price * i.quantity).toFixed(2)}</td>
+          <table style="width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.85rem;">
+            <thead>
+              <tr style="background: #f1f5f9; color: #334155;">
+                <th style="padding: 6px 8px; text-align: left; border-bottom: 1px solid #cbd5e1;">Item</th>
+                <th style="padding: 6px 8px; text-align: center; border-bottom: 1px solid #cbd5e1;">Qty</th>
+                <th style="padding: 6px 8px; text-align: right; border-bottom: 1px solid #cbd5e1;">Price</th>
+                <th style="padding: 6px 8px; text-align: right; border-bottom: 1px solid #cbd5e1;">Total</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
 
-        <div style="margin-top: 1rem; text-align: right; line-height: 1.6; color: #1e293b;">
-          <div>Subtotal: ₹${parseFloat(invoice.subtotal).toFixed(2)}</div>
-          ${invoice.discount_value > 0 ? `<div style="color: #ef4444;">Discount: -₹${parseFloat(invoice.discount_value).toFixed(2)}</div>` : ''}
-          ${invoice.tax_amount > 0 ? `<div>Tax: +₹${parseFloat(invoice.tax_amount).toFixed(2)}</div>` : ''}
-          <div style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-top: 4px;">Grand Total: ₹${parseFloat(invoice.total_amount).toFixed(2)}</div>
+          <div style="margin-top: 1.25rem; text-align: right; line-height: 1.6; color: #1e293b; font-size: 0.85rem;">
+            <div>Subtotal: ₹${subtotal.toFixed(2)}</div>
+            ${discount > 0 ? `<div style="color: #ef4444;">Discount: -₹${discount.toFixed(2)}</div>` : ''}
+            ${tax > 0 ? `<div>Tax: +₹${tax.toFixed(2)}</div>` : ''}
+            <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-top: 6px; border-top: 1px solid #e2e8f0; padding-top: 6px;">Grand Total: ₹${grandTotal.toFixed(2)}</div>
+          </div>
         </div>
       `;
 
