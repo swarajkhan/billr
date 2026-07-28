@@ -2157,6 +2157,7 @@
             try {
               const dbItems = payload.items.map(item => ({
                 id: crypto.randomUUID(),
+                user_id: userId,
                 invoice_id: payload.id,
                 product_id: (item.id && item.id.length === 36) ? item.id : null,
                 product_name: item.name || 'Product Item',
@@ -2164,7 +2165,7 @@
                 unit_price: parseFloat(item.sale_price) || 0,
                 total: (parseFloat(item.sale_price) || 0) * (parseInt(item.quantity) || 1)
               }));
-              await supabase.from('invoice_items').upsert(dbItems, { onConflict: 'id' });
+              await supabase.from('invoice_items').insert(dbItems);
             } catch (errItems) {
               console.warn('invoice_items table sync notice (non-fatal):', errItems);
             }
@@ -2220,6 +2221,7 @@
                 try {
                   const dbItems = item.payload.items.map(i => ({
                     id: crypto.randomUUID(),
+                    user_id: userId,
                     invoice_id: item.payload.id,
                     product_id: (i.id && i.id.length === 36) ? i.id : null,
                     product_name: i.name || 'Product Item',
@@ -2227,7 +2229,7 @@
                     unit_price: parseFloat(i.sale_price) || 0,
                     total: (parseFloat(i.sale_price) || 0) * (parseInt(i.quantity) || 1)
                   }));
-                  await supabase.from('invoice_items').upsert(dbItems, { onConflict: 'id' });
+                  await supabase.from('invoice_items').insert(dbItems);
                 } catch (eItems) {
                   console.warn('invoice_items queue drain notice (non-fatal):', eItems);
                 }
