@@ -2723,6 +2723,11 @@
         document.getElementById('modal-invoice-preview').classList.add('active');
       }
 
+      function cleanPdfText(text) {
+        if (!text) return '';
+        return String(text).replace(/₹/g, 'Rs. ').replace(/[^\x20-\x7E\xA0-\xFF\n\r]/g, '');
+      }
+
       function generateInvoicePDF(invoice) {
         if (!invoice) return;
 
@@ -2730,13 +2735,11 @@
 
         try {
           // Resolve jsPDF constructor from whichever namespace the bundle exposes it under
-          // html2pdf.bundle.min.js v0.10.1 exposes: window.jspdf.jsPDF
           const JsPDF = (window.jspdf && window.jspdf.jsPDF)
             || window.jsPDF
             || (typeof jsPDF !== 'undefined' ? jsPDF : null);
 
           if (!JsPDF) {
-            // Fallback: print-window if jsPDF not available at all
             _printInvoiceWindow(invoice);
             return;
           }
@@ -2748,10 +2751,17 @@
           const contentW = pageW - margin * 2;
           let y = 20;
 
-          const shopName = appState.shopProfile?.shop_name || 'ShopFlow Mart';
-          const dateStr = new Date(invoice.created_at || Date.now()).toLocaleString();
-          const invNo = invoice.invoice_number || '';
-          const items = invoice.items || [];
+          const shop = appState.shopProfile || {};
+          const shopName = cleanPdfText(shop.shop_name || 'ShopFlow Mart');
+          const dateStr = cleanPdfText(new Date(invoice.created_at || Date.now()).toLocaleString());
+          const invNo = cleanPdfText(invoice.invoice_number || '');
+
+          let items = invoice.items;
+          if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch(e) { items = []; }
+          }
+          if (!Array.isArray(items)) items = [];
+
           const subtotal = parseFloat(invoice.subtotal) || 0;
           const discount = parseFloat(invoice.discount_value) || 0;
           const tax = parseFloat(invoice.tax_amount) || 0;
@@ -2764,18 +2774,17 @@
           doc.text(shopName, pageW / 2, y, { align: 'center' });
           y += 7;
 
-          const shop = appState.shopProfile || {};
           if (shop.show_address && shop.address) {
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(8.5);
             doc.setTextColor(100, 116, 139);
-            doc.text(shop.address, pageW / 2, y, { align: 'center' });
+            doc.text(cleanPdfText(shop.address), pageW / 2, y, { align: 'center' });
             y += 4.5;
           }
 
           let contactParts = [];
-          if (shop.show_phone && shop.phone) contactParts.push('Phone: ' + shop.phone);
-          if (shop.show_email && shop.email) contactParts.push('Email: ' + shop.email);
+          if (shop.show_phone && shop.phone) contactParts.push('Phone: ' + cleanPdfText(shop.phone));
+          if (shop.show_email && shop.email) contactParts.push('Email: ' + cleanPdfText(shop.email));
           if (contactParts.length > 0) {
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(8.5);
@@ -2788,7 +2797,7 @@
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8.5);
             doc.setTextColor(79, 70, 229);
-            doc.text('GSTIN: ' + shop.gstin, pageW / 2, y, { align: 'center' });
+            doc.text('GSTIN: ' + cleanPdfText(shop.gstin), pageW / 2, y, { align: 'center' });
             y += 4.5;
           }
 
@@ -2817,14 +2826,14 @@
           doc.setTextColor(51, 65, 85);
           doc.text('Customer: ', margin, y);
           doc.setFont('helvetica', 'normal');
-          doc.text(invoice.customer_name || 'Walk-in Customer', margin + 20, y);
+          doc.text(cleanPdfText(invoice.customer_name || 'Walk-in Customer'), margin + 20, y);
           y += 5;
 
           if (invoice.customer_phone) {
             doc.setFont('helvetica', 'bold');
             doc.text('Phone: ', margin, y);
             doc.setFont('helvetica', 'normal');
-            doc.text(invoice.customer_phone, margin + 14, y);
+            doc.text(cleanPdfText(invoice.customer_phone), margin + 14, y);
             y += 5;
           }
 
@@ -2832,14 +2841,14 @@
             doc.setFont('helvetica', 'bold');
             doc.text('Address: ', margin, y);
             doc.setFont('helvetica', 'normal');
-            doc.text(invoice.customer_address, margin + 16, y);
+            doc.text(cleanPdfText(invoice.customer_address), margin + 16, y);
             y += 5;
           }
 
           doc.setFont('helvetica', 'bold');
           doc.text('Payment: ', margin, y);
           doc.setFont('helvetica', 'normal');
-          doc.text((invoice.payment_method || 'Cash').toUpperCase(), margin + 18, y);
+          doc.text(cleanPdfText((invoice.payment_method || 'Cash').toUpperCase()), margin + 18, y);
           y += 8;
 
           // ── Separator
@@ -2880,7 +2889,7 @@
             const price = parseFloat(item.sale_price) || 0;
             const qty = parseInt(item.quantity) || 1;
             const lineTotal = price * qty;
-            const name = item.name || 'Product Item';
+            const name = cleanPdfText(item.name || 'Product Item');
 
             // wrap long names
             const nameLines = doc.splitTextToSize(name, col.qty - col.item - 4);
@@ -2911,7 +2920,7 @@
             doc.setTextColor(...color);
             doc.setFont('helvetica', bold ? 'bold' : 'normal');
             doc.setFontSize(bold ? 11 : 9);
-            doc.text(label, pageW - margin - 70, y);
+            doc.text(cleanPdfText(label), pageW - margin - 70, y);
             doc.text('Rs.' + Math.abs(value).toFixed(2), pageW - margin, y, { align: 'right' });
             y += bold ? 7 : 5;
           };
@@ -2958,7 +2967,7 @@
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(7.5);
             doc.setTextColor(100, 116, 139);
-            const termLines = doc.splitTextToSize(shop.terms_and_conditions, contentW);
+            const termLines = doc.splitTextToSize(cleanPdfText(shop.terms_and_conditions), contentW);
             doc.text(termLines, margin, y);
             y += termLines.length * 3.5 + 2;
           }
@@ -2968,7 +2977,7 @@
           doc.setFont('helvetica', 'italic');
           doc.setFontSize(8);
           doc.setTextColor(100, 116, 139);
-          const footer = appState.shopProfile?.receipt_footer || 'Thank you for your purchase!';
+          const footer = cleanPdfText(appState.shopProfile?.receipt_footer || 'Thank you for your purchase!');
           doc.text(footer, pageW / 2, y, { align: 'center' });
 
           // ── Save
