@@ -925,8 +925,8 @@
             </div>
 
             <!-- Discounts & Taxes -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
-              <div>
+            <div id="pos-discounts-taxes-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+              <div id="pos-discount-container">
                 <label
                   style="display: block; font-size: 0.8rem; color: var(--clr-text-2); margin-bottom: 0.3rem;">Discount</label>
                 <div style="display: flex; gap: 4px;">
@@ -934,7 +934,7 @@
                   <button id="btn-discount-type" class="btn btn-secondary" style="width: 44px; padding: 0;">₹</button>
                 </div>
               </div>
-              <div>
+              <div id="pos-tax-container">
                 <label style="display: block; font-size: 0.8rem; color: var(--clr-text-2); margin-bottom: 0.3rem;">Tax
                   (%)</label>
                 <input type="number" id="pos-tax-percent" class="input-field" value="0" min="0">
@@ -971,12 +971,12 @@
                 <span>Subtotal</span>
                 <span id="pos-summary-subtotal" class="mono">₹0.00</span>
               </div>
-              <div
+              <div id="pos-summary-discount-row"
                 style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem; color: var(--clr-text-2);">
                 <span>Discount</span>
                 <span id="pos-summary-discount" class="mono">-₹0.00</span>
               </div>
-              <div
+              <div id="pos-summary-tax-row"
                 style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--clr-text-2);">
                 <span>Tax</span>
                 <span id="pos-summary-tax" class="mono">+₹0.00</span>
@@ -1206,6 +1206,27 @@
                   style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Receipt
                   Footer Message</label>
                 <input type="text" id="settings-footer" class="input-field" value="Thank you for shopping with us!">
+              </div>
+
+              <!-- POS Screen Customization Toggles -->
+              <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--clr-border); margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--clr-text-1); font-weight: 600;">
+                  <i class="fa-solid fa-sliders" style="color: var(--clr-accent); margin-right: 6px;"></i> POS Screen Customization
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer;">
+                    <span style="font-size: 0.88rem; color: var(--clr-text-1); font-weight: 500;">
+                      <i class="fa-solid fa-percent" style="margin-right: 8px; color: var(--clr-accent-h);"></i> Enable Discount Field in POS
+                    </span>
+                    <input type="checkbox" id="settings-enable-discount" style="width: 18px; height: 18px; accent-color: var(--clr-accent); cursor: pointer;" checked>
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer;">
+                    <span style="font-size: 0.88rem; color: var(--clr-text-1); font-weight: 500;">
+                      <i class="fa-solid fa-receipt" style="margin-right: 8px; color: var(--clr-accent-h);"></i> Enable Tax (%) Field in POS
+                    </span>
+                    <input type="checkbox" id="settings-enable-tax" style="width: 18px; height: 18px; accent-color: var(--clr-accent); cursor: pointer;" checked>
+                  </label>
+                </div>
               </div>
 
               <button type="submit" class="btn btn-primary" style="width: 100%; height: 48px; font-weight: 600;">
@@ -1661,6 +1682,16 @@
       document.getElementById('settings-threshold').value = appState.shopProfile.low_stock_threshold || 5;
       document.getElementById('settings-footer').value = appState.shopProfile.receipt_footer || 'Thank you for shopping with us!';
 
+      const enableDiscount = appState.shopProfile.enable_discount !== undefined ? appState.shopProfile.enable_discount : true;
+      const enableTax = appState.shopProfile.enable_tax !== undefined ? appState.shopProfile.enable_tax : true;
+      
+      const discCheckbox = document.getElementById('settings-enable-discount');
+      const taxCheckbox = document.getElementById('settings-enable-tax');
+      if (discCheckbox) discCheckbox.checked = enableDiscount;
+      if (taxCheckbox) taxCheckbox.checked = enableTax;
+
+      applyPosCustomizations(enableDiscount, enableTax);
+
       // Populate Setup inputs
       document.getElementById('setup-shop-name').value = appState.shopProfile.shop_name || '';
       document.getElementById('setup-owner-name').value = appState.shopProfile.owner_name || '';
@@ -1678,6 +1709,9 @@
         return;
       }
 
+      const enableDiscount = document.getElementById('settings-enable-discount')?.checked ?? true;
+      const enableTax = document.getElementById('settings-enable-tax')?.checked ?? true;
+
       const updated = {
         id: 'default_shop',
         shop_name: shopName,
@@ -1686,16 +1720,19 @@
         currency_symbol: document.getElementById('settings-currency').value.trim() || '₹',
         low_stock_threshold: parseInt(document.getElementById('settings-threshold').value) || 5,
         receipt_footer: document.getElementById('settings-footer').value.trim() || 'Thank you!',
+        enable_discount: enableDiscount,
+        enable_tax: enableTax,
         updated_at: new Date().toISOString()
       };
 
       await db.shop_profile.put(updated);
       appState.shopProfile = updated;
+      applyPosCustomizations(enableDiscount, enableTax);
 
       // Save to Cloud Point #1
       syncToCloud('shop_profiles', updated);
 
-      showToast('Shop profile updated and synced to cloud!', 'success');
+      showToast('Shop profile and POS settings saved!', 'success');
       showAuthenticatedApp();
     }
 
@@ -1862,6 +1899,8 @@
           currency_symbol: payload.currency_symbol || '₹',
           low_stock_threshold: parseInt(payload.low_stock_threshold) || 5,
           receipt_footer: payload.receipt_footer || 'Thank you for your purchase!',
+          enable_discount: payload.enable_discount !== undefined ? payload.enable_discount : true,
+          enable_tax: payload.enable_tax !== undefined ? payload.enable_tax : true,
           updated_at: new Date().toISOString()
         };
         if (payload.id && payload.id !== 'default_shop') {
@@ -2202,7 +2241,6 @@
         });
       }
       renderCart();
-      showToast(`Added ${product.name} to cart`, 'success');
     }
 
     function renderCart() {
@@ -2241,10 +2279,40 @@
       updateTotals();
     }
 
+    function applyPosCustomizations(enableDiscount, enableTax) {
+      const discountCol = document.getElementById('pos-discount-container');
+      const taxCol = document.getElementById('pos-tax-container');
+      const grid = document.getElementById('pos-discounts-taxes-grid');
+      const discRow = document.getElementById('pos-summary-discount-row');
+      const taxRow = document.getElementById('pos-summary-tax-row');
+
+      if (discountCol) discountCol.style.display = enableDiscount ? 'block' : 'none';
+      if (taxCol) taxCol.style.display = enableTax ? 'block' : 'none';
+      if (discRow) discRow.style.display = enableDiscount ? 'flex' : 'none';
+      if (taxRow) taxRow.style.display = enableTax ? 'flex' : 'none';
+
+      if (grid) {
+        if (enableDiscount && enableTax) {
+          grid.style.display = 'grid';
+          grid.style.gridTemplateColumns = '1fr 1fr';
+        } else if (enableDiscount || enableTax) {
+          grid.style.display = 'grid';
+          grid.style.gridTemplateColumns = '1fr';
+        } else {
+          grid.style.display = 'none';
+        }
+      }
+      updateTotals();
+    }
+
     function updateTotals() {
       const subtotal = appState.cart.reduce((sum, item) => sum + (item.sale_price * item.quantity), 0);
-      const discountVal = parseFloat(document.getElementById('pos-discount-value').value) || 0;
-      const taxPercent = parseFloat(document.getElementById('pos-tax-percent').value) || 0;
+
+      const enableDiscount = appState.shopProfile?.enable_discount !== undefined ? appState.shopProfile.enable_discount : true;
+      const enableTax = appState.shopProfile?.enable_tax !== undefined ? appState.shopProfile.enable_tax : true;
+
+      const discountVal = enableDiscount ? (parseFloat(document.getElementById('pos-discount-value')?.value) || 0) : 0;
+      const taxPercent = enableTax ? (parseFloat(document.getElementById('pos-tax-percent')?.value) || 0) : 0;
 
       let discountAmount = appState.discountType === 'flat' ? discountVal : (subtotal * discountVal / 100);
       let taxAmount = ((subtotal - discountAmount) * taxPercent / 100);
