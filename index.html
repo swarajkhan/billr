@@ -2631,6 +2631,13 @@
 
         // Show PDF Preview Modal immediately
         openInvoicePreviewModal(newInvoice);
+
+        // Auto-download or open signature pad based on settings
+        if (appState.shopProfile?.enable_signature_pad) {
+          openSignatureModal();
+        } else {
+          generateInvoicePDF(newInvoice);
+        }
       }
 
       function openInvoicePreviewModal(invoice) {
@@ -2740,17 +2747,29 @@
         if (!invoice) return;
 
         showToast('Generating PDF receipt...', 'info');
+        
+        const downloadBtn = document.getElementById('btn-download-pdf');
+        const originalBtnHtml = downloadBtn ? downloadBtn.innerHTML : '';
+        if (downloadBtn) {
+          downloadBtn.disabled = true;
+          downloadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+        }
 
-        try {
-          // Resolve jsPDF constructor from whichever namespace the bundle exposes it under
-          const JsPDF = (window.jspdf && window.jspdf.jsPDF)
-            || window.jsPDF
-            || (typeof jsPDF !== 'undefined' ? jsPDF : null);
+        setTimeout(() => {
+          try {
+            // Resolve jsPDF constructor from whichever namespace the bundle exposes it under
+            const JsPDF = (window.jspdf && window.jspdf.jsPDF)
+              || window.jsPDF
+              || (typeof jsPDF !== 'undefined' ? jsPDF : null);
 
-          if (!JsPDF) {
-            _printInvoiceWindow(invoice);
-            return;
-          }
+            if (!JsPDF) {
+              if (downloadBtn) {
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = originalBtnHtml;
+              }
+              _printInvoiceWindow(invoice);
+              return;
+            }
 
           const doc = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
@@ -2899,8 +2918,13 @@
             const lineTotal = price * qty;
             const name = cleanPdfText(item.name || 'Product Item');
 
-            // wrap long names
-            const nameLines = doc.splitTextToSize(name, col.qty - col.item - 4);
+            // wrap long names (safe manual chunking to prevent jsPDF infinite loops)
+            const nameLines = [];
+            const maxChars = 45;
+            if (!name) nameLines.push('');
+            for (let i = 0; i < name.length; i += maxChars) {
+              nameLines.push(name.substring(i, i + maxChars));
+            }
             doc.text(nameLines, col.item, y);
             doc.text(String(qty), col.qty, y, { align: 'center' });
             doc.text('Rs.' + price.toFixed(2), col.price, y, { align: 'right' });
@@ -2975,7 +2999,15 @@
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(7.5);
             doc.setTextColor(100, 116, 139);
-            const termLines = doc.splitTextToSize(cleanPdfText(shop.terms_and_conditions), contentW);
+            const termText = cleanPdfText(shop.terms_and_conditions) || '';
+            const termLines = [];
+            const termMaxChars = 100;
+            termText.split('\n').forEach(p => {
+              if (!p) termLines.push('');
+              for (let i = 0; i < p.length; i += termMaxChars) {
+                termLines.push(p.substring(i, i + termMaxChars));
+              }
+            });
             doc.text(termLines, margin, y);
             y += termLines.length * 3.5 + 2;
           }
@@ -2992,11 +3024,20 @@
           doc.save(`${invNo || 'invoice'}.pdf`);
           showToast('PDF downloaded successfully!', 'success');
 
+          if (downloadBtn) {
+            downloadBtn.disabled = false;
+            downloadBtn.innerHTML = originalBtnHtml;
+          }
         } catch (err) {
           console.error('PDF generation error:', err);
           showToast('PDF generation failed, opening print view...', 'error');
+          if (downloadBtn) {
+            downloadBtn.disabled = false;
+            downloadBtn.innerHTML = originalBtnHtml;
+          }
           _printInvoiceWindow(invoice);
         }
+        }, 50); // Yield thread
       }
 
       function _printInvoiceWindow(invoice) {
