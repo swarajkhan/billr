@@ -2253,12 +2253,6 @@
         }
         updateSyncBadge('online');
       }
-          } catch (e) {
-            console.warn('Sync queue drain item error:', e);
-          }
-        }
-        updateSyncBadge('online');
-      }
 
       async function syncFromCloud(silent = true) {
         if (!appState.session || !appState.session.loggedIn || !supabase) {
