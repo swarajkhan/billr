@@ -1926,10 +1926,28 @@
           console.warn('JWT clock skew detected — refreshing session and retrying...');
           const { data: refreshData } = await supabase.auth.refreshSession();
           if (refreshData?.session) appState.session = { ...appState.session, ...refreshData.session };
-          // Small delay to let the server clock settle
           await new Promise(r => setTimeout(r, 1500));
           const retry = await supabase.from(tableName).upsert(syncPayload);
           error = retry.error;
+        }
+
+        // Handle Foreign Key 23503 error on invoices (when new customer_id not yet present in Supabase):
+        if (error && error.code === '23503' && tableName === 'invoices' && syncPayload.customer_id) {
+          console.warn('Foreign key 23503 missing customer in cloud — auto-syncing customer first...');
+          const custLoc = await db.customers.get(syncPayload.customer_id);
+          if (custLoc) {
+            const custPayload = formatPayloadForSupabase('customers', custLoc, userId);
+            await supabase.from('customers').upsert(custPayload);
+          }
+          const retryInv = await supabase.from(tableName).upsert(syncPayload);
+          if (!retryInv.error) {
+            error = null;
+          } else {
+            // Fallback: strip customer_id for cloud payload while keeping customer_name & customer_phone intact
+            const safePayload = { ...syncPayload, customer_id: null };
+            const safeRetry = await supabase.from(tableName).upsert(safePayload);
+            error = safeRetry.error;
+          }
         }
 
         if (error) throw error;
@@ -1953,6 +1971,7 @@
         }
 
         updateSyncBadge('online');
+        return true;
       } catch (err) {
         console.warn(`Cloud save failed for ${tableName}, added to sync queue:`, err);
         await db.sync_queue.add({
@@ -1962,6 +1981,8 @@
           created_at: new Date().toISOString()
         });
         updateSyncBadge('offline');
+        showToast(`Cloud sync for ${tableName} saved offline queue. Click Refresh/Sync to retry.`, 'warning');
+        return false;
       }
     }
 
@@ -1976,7 +1997,23 @@
         try {
           const userId = appState.session.user.id;
           const syncPayload = formatPayloadForSupabase(item.table_name, item.payload, userId);
-          const { error } = await supabase.from(item.table_name).upsert(syncPayload);
+          let { error } = await supabase.from(item.table_name).upsert(syncPayload);
+
+          if (error && error.code === '23503' && item.table_name === 'invoices' && syncPayload.customer_id) {
+            const custLoc = await db.customers.get(syncPayload.customer_id);
+            if (custLoc) {
+              const custPayload = formatPayloadForSupabase('customers', custLoc, userId);
+              await supabase.from('customers').upsert(custPayload);
+            }
+            const retryInv = await supabase.from(item.table_name).upsert(syncPayload);
+            if (!retryInv.error) {
+              error = null;
+            } else {
+              const safePayload = { ...syncPayload, customer_id: null };
+              const safeRetry = await supabase.from(item.table_name).upsert(safePayload);
+              error = safeRetry.error;
+            }
+          }
 
           if (!error) {
             if (item.table_name === 'invoices' && item.payload.items && item.payload.items.length > 0) {
@@ -2298,7 +2335,7 @@
       let customerId = appState.selectedCustomer ? appState.selectedCustomer.id : null;
       let finalCustName = typedName || 'Walk-in Customer';
 
-      // Save to Cloud Point #4: Auto Create Customer
+      // Save to Cloud Point #4: Auto Create Customer (AWAITED to ensure customer exists before invoice upsert)
       if (!customerId && typedName) {
         const newCust = {
           id: crypto.randomUUID(),
@@ -2309,7 +2346,7 @@
           created_at: new Date().toISOString()
         };
         await db.customers.add(newCust);
-        syncToCloud('customers', newCust);
+        await syncToCloud('customers', newCust);
         customerId = newCust.id;
       }
 
@@ -2353,16 +2390,16 @@
       };
 
       await db.invoices.add(newInvoice);
-      // Save to Cloud Point #3: Invoice Generated
-      syncToCloud('invoices', newInvoice);
+      // Save to Cloud Point #3: Invoice Generated (AWAITED)
+      await syncToCloud('invoices', newInvoice);
 
-      // Save to Cloud Point #5: Deduct Stock
+      // Save to Cloud Point #5: Deduct Stock (AWAITED)
       for (const item of appState.cart) {
         const prod = await db.products.get(item.id);
         if (prod) {
           const updatedStock = Math.max(0, prod.stock_quantity - item.quantity);
           await db.products.update(item.id, { stock_quantity: updatedStock });
-          syncToCloud('products', { ...prod, stock_quantity: updatedStock });
+          await syncToCloud('products', { ...prod, stock_quantity: updatedStock });
         }
       }
 
