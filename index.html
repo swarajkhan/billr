@@ -1562,6 +1562,24 @@
       sync_queue: '++localId, table_name, operation, payload, created_at, retries',
       shop_profile: '&id'
     });
+    db.version(2).stores({
+      products: '&id, barcode, name, category, stock_quantity, is_active, updated_at',
+      customers: '&id, name, phone, updated_at',
+      invoices: '&id, invoice_number, customer_id, created_at, synced',
+      invoice_items: '&id, invoice_id, product_id',
+      sync_queue: '++localId, table_name, operation, payload, created_at, retries',
+      shop_profile: '&id',
+      credit_notes: '&id, credit_note_number, invoice_id, customer_id, created_at'
+    });
+    db.version(20).stores({
+      products: '&id, barcode, name, category, stock_quantity, is_active, updated_at',
+      customers: '&id, name, phone, updated_at',
+      invoices: '&id, invoice_number, customer_id, created_at, synced',
+      invoice_items: '&id, invoice_id, product_id',
+      sync_queue: '++localId, table_name, operation, payload, created_at, retries',
+      shop_profile: '&id',
+      credit_notes: '&id, credit_note_number, invoice_id, customer_id, created_at'
+    });
 
     // ===== SECTION: Application State =====
     let appState = {
