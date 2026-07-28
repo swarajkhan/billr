@@ -921,6 +921,10 @@
 
                 <input type="text" id="pos-customer-phone" class="input-field" placeholder="Phone Number (Optional)"
                   autocomplete="off">
+                <div id="pos-customer-address-container" style="display: none; margin-top: 0.5rem;">
+                  <input type="text" id="pos-customer-address" class="input-field" placeholder="Customer Address (Optional)"
+                    autocomplete="off">
+                </div>
               </div>
             </div>
 
@@ -1201,15 +1205,64 @@
                 </div>
               </div>
 
+              <div class="form-grid-2col"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                  <label
+                    style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Shop
+                    Email Address</label>
+                  <input type="email" id="settings-email" class="input-field" placeholder="shop@domain.com">
+                </div>
+                <div>
+                  <label
+                    style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">GSTIN / Tax ID</label>
+                  <input type="text" id="settings-gstin" class="input-field" placeholder="e.g. 22AAAAA0000A1Z5">
+                </div>
+              </div>
+
+              <div style="margin-bottom: 1rem;">
+                <label
+                  style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Shop Physical Address</label>
+                <textarea id="settings-address" class="input-field" style="height: 60px; min-height: 60px; font-family: inherit;" placeholder="Street, City, State, Pincode"></textarea>
+              </div>
+
               <div style="margin-bottom: 1.5rem;">
                 <label
-                  style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Receipt
-                  Footer Message</label>
-                <input type="text" id="settings-footer" class="input-field" value="Thank you for shopping with us!">
+                  style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Terms & Conditions (Invoice Footer)</label>
+                <textarea id="settings-terms" class="input-field" style="height: 60px; min-height: 60px; font-family: inherit;" placeholder="e.g. Goods once sold will not be taken back. All disputes subject to local jurisdiction."></textarea>
+              </div>
+
+              <!-- Invoice Details Visibility Toggles -->
+              <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--clr-border); margin-bottom: 1rem;">
+                <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--clr-text-1); font-weight: 600;">
+                  <i class="fa-solid fa-file-invoice" style="color: var(--clr-accent); margin-right: 6px;"></i> Invoice Header & Footer Display Options
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer;">
+                    <span style="font-size: 0.82rem; color: var(--clr-text-1);">Include Shop Address</span>
+                    <input type="checkbox" id="settings-show-address" style="width: 16px; height: 16px; accent-color: var(--clr-accent);" checked>
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer;">
+                    <span style="font-size: 0.82rem; color: var(--clr-text-1);">Include Phone Number</span>
+                    <input type="checkbox" id="settings-show-phone" style="width: 16px; height: 16px; accent-color: var(--clr-accent);" checked>
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer;">
+                    <span style="font-size: 0.82rem; color: var(--clr-text-1);">Include Email Address</span>
+                    <input type="checkbox" id="settings-show-email" style="width: 16px; height: 16px; accent-color: var(--clr-accent);" checked>
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer;">
+                    <span style="font-size: 0.82rem; color: var(--clr-text-1);">Include GSTIN / Tax ID</span>
+                    <input type="checkbox" id="settings-show-gstin" style="width: 16px; height: 16px; accent-color: var(--clr-accent);" checked>
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer; grid-column: span 2;">
+                    <span style="font-size: 0.82rem; color: var(--clr-text-1);">Include Terms & Conditions on Invoice Footer</span>
+                    <input type="checkbox" id="settings-show-terms" style="width: 16px; height: 16px; accent-color: var(--clr-accent);" checked>
+                  </label>
+                </div>
               </div>
 
               <!-- POS Screen Customization Toggles -->
-              <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--clr-border); margin-bottom: 1.5rem;">
+              <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--clr-border); margin-bottom: 1.5rem;">
                 <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--clr-text-1); font-weight: 600;">
                   <i class="fa-solid fa-sliders" style="color: var(--clr-accent); margin-right: 6px;"></i> POS Screen Customization
                 </h4>
@@ -1225,6 +1278,18 @@
                       <i class="fa-solid fa-receipt" style="margin-right: 8px; color: var(--clr-accent-h);"></i> Enable Tax (%) Field in POS
                     </span>
                     <input type="checkbox" id="settings-enable-tax" style="width: 18px; height: 18px; accent-color: var(--clr-accent); cursor: pointer;" checked>
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer;">
+                    <span style="font-size: 0.88rem; color: var(--clr-text-1); font-weight: 500;">
+                      <i class="fa-solid fa-location-dot" style="margin-right: 8px; color: var(--clr-accent-h);"></i> Enable Customer Address Field in POS
+                    </span>
+                    <input type="checkbox" id="settings-enable-customer-address" style="width: 18px; height: 18px; accent-color: var(--clr-accent); cursor: pointer;">
+                  </label>
+                  <label style="display: flex; align-items: center; justify-content: space-between; background: var(--clr-surface-2); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--clr-border); cursor: pointer;">
+                    <span style="font-size: 0.88rem; color: var(--clr-text-1); font-weight: 500;">
+                      <i class="fa-solid fa-signature" style="margin-right: 8px; color: var(--clr-accent-h);"></i> Enable Drawing Signature Pad before PDF Download
+                    </span>
+                    <input type="checkbox" id="settings-enable-signature-pad" style="width: 18px; height: 18px; accent-color: var(--clr-accent); cursor: pointer;">
                   </label>
                 </div>
               </div>
@@ -1335,6 +1400,24 @@
           <button type="button" id="btn-toggle-auth-mode"
             style="background: none; border: none; color: var(--clr-accent-h); font-size: 0.85rem; cursor: pointer; text-decoration: underline;">Don't
             have an account? Register</button>
+        </div>
+      </div>
+    </div>
+  <!-- Modal: Draw Signature Pad -->
+  <div id="modal-signature-pad" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px; width: 92%;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-pen-nib" style="color: var(--clr-accent);"></i> Draw Signature</h3>
+        <button class="btn btn-secondary modal-close" onclick="closeSignatureModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 1rem; text-align: center;">
+        <p style="font-size: 0.85rem; color: var(--clr-text-2); margin-bottom: 0.75rem;">Draw signature on pad below before downloading invoice PDF</p>
+        <div style="position: relative; background: #ffffff; border: 2px dashed var(--clr-border); border-radius: var(--radius-md); overflow: hidden; touch-action: none;">
+          <canvas id="signature-canvas" width="440" height="180" style="width: 100%; height: 180px; display: block; cursor: crosshair; touch-action: none;"></canvas>
+        </div>
+        <div style="display: flex; gap: 0.75rem; margin-top: 1rem; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="clearSignatureCanvas()"><i class="fa-solid fa-eraser"></i> Clear</button>
+          <button type="button" class="btn btn-primary" onclick="confirmSignatureAndDownload()"><i class="fa-solid fa-file-pdf"></i> Generate & Download PDF</button>
         </div>
       </div>
     </div>
@@ -1678,19 +1761,33 @@
       document.getElementById('settings-shop-name').value = appState.shopProfile.shop_name || '';
       document.getElementById('settings-owner-name').value = appState.shopProfile.owner_name || '';
       document.getElementById('settings-phone').value = appState.shopProfile.phone || '';
+      document.getElementById('settings-email').value = appState.shopProfile.email || '';
+      document.getElementById('settings-gstin').value = appState.shopProfile.gstin || '';
+      document.getElementById('settings-address').value = appState.shopProfile.address || '';
       document.getElementById('settings-currency').value = appState.shopProfile.currency_symbol || '₹';
       document.getElementById('settings-threshold').value = appState.shopProfile.low_stock_threshold || 5;
       document.getElementById('settings-footer').value = appState.shopProfile.receipt_footer || 'Thank you for shopping with us!';
+      document.getElementById('settings-terms').value = appState.shopProfile.terms_and_conditions || '';
 
-      const enableDiscount = appState.shopProfile.enable_discount !== undefined ? appState.shopProfile.enable_discount : true;
-      const enableTax = appState.shopProfile.enable_tax !== undefined ? appState.shopProfile.enable_tax : true;
-      
+      const p = appState.shopProfile;
+      const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val !== undefined ? val : true; };
+      setCheck('settings-show-address', p.show_address);
+      setCheck('settings-show-phone', p.show_phone);
+      setCheck('settings-show-email', p.show_email);
+      setCheck('settings-show-gstin', p.show_gstin);
+      setCheck('settings-show-terms', p.show_terms);
+
       const discCheckbox = document.getElementById('settings-enable-discount');
       const taxCheckbox = document.getElementById('settings-enable-tax');
-      if (discCheckbox) discCheckbox.checked = enableDiscount;
-      if (taxCheckbox) taxCheckbox.checked = enableTax;
+      const custAddrCheckbox = document.getElementById('settings-enable-customer-address');
+      const sigCheckbox = document.getElementById('settings-enable-signature-pad');
 
-      applyPosCustomizations(enableDiscount, enableTax);
+      if (discCheckbox) discCheckbox.checked = p.enable_discount !== undefined ? p.enable_discount : true;
+      if (taxCheckbox) taxCheckbox.checked = p.enable_tax !== undefined ? p.enable_tax : true;
+      if (custAddrCheckbox) custAddrCheckbox.checked = p.enable_customer_address !== undefined ? p.enable_customer_address : false;
+      if (sigCheckbox) sigCheckbox.checked = p.enable_signature_pad !== undefined ? p.enable_signature_pad : false;
+
+      applyPosCustomizations();
 
       // Populate Setup inputs
       document.getElementById('setup-shop-name').value = appState.shopProfile.shop_name || '';
@@ -1709,25 +1806,33 @@
         return;
       }
 
-      const enableDiscount = document.getElementById('settings-enable-discount')?.checked ?? true;
-      const enableTax = document.getElementById('settings-enable-tax')?.checked ?? true;
-
       const updated = {
         id: 'default_shop',
         shop_name: shopName,
         owner_name: document.getElementById('settings-owner-name').value.trim(),
         phone: document.getElementById('settings-phone').value.trim(),
+        email: document.getElementById('settings-email').value.trim(),
+        gstin: document.getElementById('settings-gstin').value.trim(),
+        address: document.getElementById('settings-address').value.trim(),
         currency_symbol: document.getElementById('settings-currency').value.trim() || '₹',
         low_stock_threshold: parseInt(document.getElementById('settings-threshold').value) || 5,
         receipt_footer: document.getElementById('settings-footer').value.trim() || 'Thank you!',
-        enable_discount: enableDiscount,
-        enable_tax: enableTax,
+        terms_and_conditions: document.getElementById('settings-terms').value.trim(),
+        show_address: document.getElementById('settings-show-address')?.checked ?? true,
+        show_phone: document.getElementById('settings-show-phone')?.checked ?? true,
+        show_email: document.getElementById('settings-show-email')?.checked ?? true,
+        show_gstin: document.getElementById('settings-show-gstin')?.checked ?? true,
+        show_terms: document.getElementById('settings-show-terms')?.checked ?? true,
+        enable_discount: document.getElementById('settings-enable-discount')?.checked ?? true,
+        enable_tax: document.getElementById('settings-enable-tax')?.checked ?? true,
+        enable_customer_address: document.getElementById('settings-enable-customer-address')?.checked ?? false,
+        enable_signature_pad: document.getElementById('settings-enable-signature-pad')?.checked ?? false,
         updated_at: new Date().toISOString()
       };
 
       await db.shop_profile.put(updated);
       appState.shopProfile = updated;
-      applyPosCustomizations(enableDiscount, enableTax);
+      applyPosCustomizations();
 
       // Save to Cloud Point #1
       syncToCloud('shop_profiles', updated);
@@ -1875,6 +1980,8 @@
           customer_id: (payload.customer_id && payload.customer_id.length === 36) ? payload.customer_id : null,
           customer_name: payload.customer_name || 'Walk-in Customer',
           customer_phone: payload.customer_phone || '',
+          customer_address: payload.customer_address || null,
+          signature_url: payload.signature_url || payload.signatureDataUrl || null,
           subtotal: parseFloat(payload.subtotal) || 0,
           discount_type: payload.discount_type || 'none',
           discount_value: parseFloat(payload.discount_value) || 0,
@@ -1896,11 +2003,22 @@
           shop_name: payload.shop_name || 'My Shop',
           owner_name: payload.owner_name || '',
           phone: payload.phone || '',
+          email: payload.email || '',
+          gstin: payload.gstin || '',
+          address: payload.address || '',
           currency_symbol: payload.currency_symbol || '₹',
           low_stock_threshold: parseInt(payload.low_stock_threshold) || 5,
           receipt_footer: payload.receipt_footer || 'Thank you for your purchase!',
+          terms_and_conditions: payload.terms_and_conditions || '',
+          show_address: payload.show_address !== undefined ? payload.show_address : true,
+          show_phone: payload.show_phone !== undefined ? payload.show_phone : true,
+          show_email: payload.show_email !== undefined ? payload.show_email : true,
+          show_gstin: payload.show_gstin !== undefined ? payload.show_gstin : true,
+          show_terms: payload.show_terms !== undefined ? payload.show_terms : true,
           enable_discount: payload.enable_discount !== undefined ? payload.enable_discount : true,
           enable_tax: payload.enable_tax !== undefined ? payload.enable_tax : true,
+          enable_customer_address: payload.enable_customer_address !== undefined ? payload.enable_customer_address : false,
+          enable_signature_pad: payload.enable_signature_pad !== undefined ? payload.enable_signature_pad : false,
           updated_at: new Date().toISOString()
         };
         if (payload.id && payload.id !== 'default_shop') {
@@ -2279,17 +2397,24 @@
       updateTotals();
     }
 
-    function applyPosCustomizations(enableDiscount, enableTax) {
+    function applyPosCustomizations() {
+      const p = appState.shopProfile || {};
+      const enableDiscount = p.enable_discount !== undefined ? p.enable_discount : true;
+      const enableTax = p.enable_tax !== undefined ? p.enable_tax : true;
+      const enableCustAddr = p.enable_customer_address !== undefined ? p.enable_customer_address : false;
+
       const discountCol = document.getElementById('pos-discount-container');
       const taxCol = document.getElementById('pos-tax-container');
       const grid = document.getElementById('pos-discounts-taxes-grid');
       const discRow = document.getElementById('pos-summary-discount-row');
       const taxRow = document.getElementById('pos-summary-tax-row');
+      const custAddrContainer = document.getElementById('pos-customer-address-container');
 
       if (discountCol) discountCol.style.display = enableDiscount ? 'block' : 'none';
       if (taxCol) taxCol.style.display = enableTax ? 'block' : 'none';
       if (discRow) discRow.style.display = enableDiscount ? 'flex' : 'none';
       if (taxRow) taxRow.style.display = enableTax ? 'flex' : 'none';
+      if (custAddrContainer) custAddrContainer.style.display = enableCustAddr ? 'block' : 'none';
 
       if (grid) {
         if (enableDiscount && enableTax) {
@@ -2399,6 +2524,7 @@
 
       const typedName = document.getElementById('pos-customer-name').value.trim();
       const typedPhone = document.getElementById('pos-customer-phone').value.trim();
+      const typedAddress = document.getElementById('pos-customer-address')?.value.trim() || '';
 
       let customerId = appState.selectedCustomer ? appState.selectedCustomer.id : null;
       let finalCustName = typedName || 'Walk-in Customer';
@@ -2409,6 +2535,7 @@
           id: crypto.randomUUID(),
           name: typedName,
           phone: typedPhone || '',
+          address: typedAddress || '',
           total_purchases: grandTotal,
           visit_count: 1,
           created_at: new Date().toISOString()
@@ -2444,6 +2571,7 @@
         customer_id: customerId,
         customer_name: finalCustName,
         customer_phone: typedPhone || '',
+        customer_address: typedAddress || '',
         subtotal: subtotal,
         discount_type: appState.discountType === 'percent' ? 'percent' : (discountAmount > 0 ? 'flat' : 'none'),
         discount_value: discountAmount,
@@ -2474,6 +2602,7 @@
       appState.cart = [];
       document.getElementById('pos-customer-name').value = '';
       document.getElementById('pos-customer-phone').value = '';
+      if (document.getElementById('pos-customer-address')) document.getElementById('pos-customer-address').value = '';
       document.getElementById('customer-linked-badge').style.display = 'none';
       appState.selectedCustomer = null;
       renderCart();
@@ -2508,10 +2637,32 @@
       const tax = parseFloat(invoice.tax_amount) || 0;
       const grandTotal = parseFloat(invoice.total_amount) || 0;
 
+      const shop = appState.shopProfile || {};
+      let shopMetaHtml = '';
+      if (shop.show_address && shop.address) shopMetaHtml += `<div style="color: #64748b; font-size: 0.8rem; margin-top: 2px;">${shop.address}</div>`;
+      if (shop.show_phone && shop.phone) shopMetaHtml += `<div style="color: #64748b; font-size: 0.8rem;">Phone: ${shop.phone}</div>`;
+      if (shop.show_email && shop.email) shopMetaHtml += `<div style="color: #64748b; font-size: 0.8rem;">Email: ${shop.email}</div>`;
+      if (shop.show_gstin && shop.gstin) shopMetaHtml += `<div style="color: #4f46e5; font-weight: 600; font-size: 0.8rem;">GSTIN: ${shop.gstin}</div>`;
+
+      let custAddrHtml = invoice.customer_address ? `<div><strong>Address:</strong> ${invoice.customer_address}</div>` : '';
+      let termsHtml = (shop.show_terms && shop.terms_and_conditions) ? `
+        <div style="margin-top: 1rem; border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; font-size: 0.75rem; color: #64748b; text-align: left;">
+          <strong>Terms & Conditions:</strong><br>${shop.terms_and_conditions.replace(/\n/g, '<br>')}
+        </div>
+      ` : '';
+
+      let sigImgHtml = invoice.signatureDataUrl ? `
+        <div style="margin-top: 1rem; text-align: right;">
+          <img src="${invoice.signatureDataUrl}" style="max-height: 45px; display: inline-block;" />
+          <div style="font-size: 0.75rem; color: #475569; font-weight: bold;">Authorized Signature</div>
+        </div>
+      ` : '';
+
       renderArea.innerHTML = `
         <div style="background: #ffffff; color: #0f172a; padding: 1.25rem; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           <div style="text-align: center; margin-bottom: 1.25rem;">
             <h2 style="margin: 0; color: #0f172a; font-size: 1.4rem; font-weight: 700;">${appState.shopProfile?.shop_name || 'ShopFlow Mart'}</h2>
+            ${shopMetaHtml}
             <div style="color: #64748b; font-size: 0.8rem; margin-top: 4px;">Date: ${new Date(invoice.created_at || Date.now()).toLocaleString()}</div>
             <div style="font-weight: 700; color: #4f46e5; margin-top: 4px; font-size: 1rem;">${invoice.invoice_number}</div>
           </div>
@@ -2519,6 +2670,7 @@
           <div style="margin-bottom: 1rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 0.75rem; color: #334155; font-size: 0.85rem; line-height: 1.5;">
             <div><strong>Customer:</strong> ${invoice.customer_name || 'Walk-in Customer'}</div>
             ${invoice.customer_phone ? `<div><strong>Phone:</strong> ${invoice.customer_phone}</div>` : ''}
+            ${custAddrHtml}
             <div><strong>Payment Method:</strong> ${(invoice.payment_method || 'cash').toUpperCase()}</div>
           </div>
 
@@ -2542,6 +2694,9 @@
             ${tax > 0 ? `<div>Tax: +₹${tax.toFixed(2)}</div>` : ''}
             <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-top: 6px; border-top: 1px solid #e2e8f0; padding-top: 6px;">Grand Total: ₹${grandTotal.toFixed(2)}</div>
           </div>
+
+          ${sigImgHtml}
+          ${termsHtml}
         </div>
       `;
 
@@ -2582,12 +2737,40 @@
         const tax = parseFloat(invoice.tax_amount) || 0;
         const grandTotal = parseFloat(invoice.total_amount) || 0;
 
-        // ── Shop Name (centered, bold large)
+        // ── Shop Name & Header Metadata (centered)
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(22);
         doc.setTextColor(15, 23, 42);
         doc.text(shopName, pageW / 2, y, { align: 'center' });
-        y += 8;
+        y += 7;
+
+        const shop = appState.shopProfile || {};
+        if (shop.show_address && shop.address) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(shop.address, pageW / 2, y, { align: 'center' });
+          y += 4.5;
+        }
+
+        let contactParts = [];
+        if (shop.show_phone && shop.phone) contactParts.push('Phone: ' + shop.phone);
+        if (shop.show_email && shop.email) contactParts.push('Email: ' + shop.email);
+        if (contactParts.length > 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(contactParts.join('  |  '), pageW / 2, y, { align: 'center' });
+          y += 4.5;
+        }
+
+        if (shop.show_gstin && shop.gstin) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(79, 70, 229);
+          doc.text('GSTIN: ' + shop.gstin, pageW / 2, y, { align: 'center' });
+          y += 4.5;
+        }
 
         // ── Date & Invoice Number (centered, normal)
         doc.setFont('helvetica', 'normal');
@@ -2622,6 +2805,14 @@
           doc.text('Phone: ', margin, y);
           doc.setFont('helvetica', 'normal');
           doc.text(invoice.customer_phone, margin + 14, y);
+          y += 5;
+        }
+
+        if (invoice.customer_address) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('Address: ', margin, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(invoice.customer_address, margin + 16, y);
           y += 5;
         }
 
@@ -2715,6 +2906,42 @@
         doc.line(pageW - margin - 70, y, pageW - margin, y);
         y += 5;
         drawTotalLine('Grand Total:', grandTotal, true, [15, 23, 42]);
+
+        // ── Signature (if present)
+        if (invoice.signatureDataUrl) {
+          try {
+            y += 6;
+            doc.addImage(invoice.signatureDataUrl, 'PNG', pageW - margin - 45, y, 40, 15);
+            y += 16;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(51, 65, 85);
+            doc.text('Authorized Signature', pageW - margin - 22, y, { align: 'center' });
+            y += 4;
+          } catch (eSig) { console.warn('Signature PNG embed notice:', eSig); }
+        }
+
+        // ── Terms & Conditions (if enabled)
+        if (shop.show_terms && shop.terms_and_conditions) {
+          y += 6;
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.3);
+          doc.line(margin, y, pageW - margin, y);
+          y += 4;
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(51, 65, 85);
+          doc.text('Terms & Conditions:', margin, y);
+          y += 4;
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 116, 139);
+          const termLines = doc.splitTextToSize(shop.terms_and_conditions, contentW);
+          doc.text(termLines, margin, y);
+          y += termLines.length * 3.5 + 2;
+        }
 
         // ── Footer
         y += 8;
@@ -3329,10 +3556,12 @@
       document.getElementById('btn-complete-sale')?.addEventListener('click', completeSale);
 
       document.getElementById('btn-download-pdf')?.addEventListener('click', () => {
-        if (appState.activeInvoice) {
-          generateInvoicePDF(appState.activeInvoice);
+        if (!appState.activeInvoice) return;
+        const enableSig = appState.shopProfile?.enable_signature_pad;
+        if (enableSig && !appState.activeInvoice.signatureDataUrl) {
+          openSignatureModal();
         } else {
-          window.print();
+          generateInvoicePDF(appState.activeInvoice);
         }
       });
 
@@ -3391,6 +3620,100 @@
           });
         }).catch(err => console.error('SW failed:', err));
       }
+
+      // ===== SECTION: Signature Canvas Pad Engine =====
+      let signatureCanvas, signatureCtx, isDrawingSig = false;
+
+      window.initSignatureCanvas = function() {
+        signatureCanvas = document.getElementById('signature-canvas');
+        if (!signatureCanvas) return;
+        signatureCtx = signatureCanvas.getContext('2d');
+
+        function getCanvasCoords(e) {
+          const rect = signatureCanvas.getBoundingClientRect();
+          const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+          return {
+            x: (clientX - rect.left) * (signatureCanvas.width / rect.width),
+            y: (clientY - rect.top) * (signatureCanvas.height / rect.height)
+          };
+        }
+
+        function startDrawing(e) {
+          isDrawingSig = true;
+          const coords = getCanvasCoords(e);
+          signatureCtx.beginPath();
+          signatureCtx.moveTo(coords.x, coords.y);
+          signatureCtx.lineWidth = 2.5;
+          signatureCtx.lineCap = 'round';
+          signatureCtx.lineJoin = 'round';
+          signatureCtx.strokeStyle = '#0f172a';
+        }
+
+        function draw(e) {
+          if (!isDrawingSig) return;
+          if (e.touches) e.preventDefault();
+          const coords = getCanvasCoords(e);
+          signatureCtx.lineTo(coords.x, coords.y);
+          signatureCtx.stroke();
+        }
+
+        function stopDrawing() {
+          if (isDrawingSig) {
+            isDrawingSig = false;
+            signatureCtx.beginPath();
+          }
+        }
+
+        signatureCanvas.onmousedown = startDrawing;
+        signatureCanvas.onmousemove = draw;
+        signatureCanvas.onmouseup = stopDrawing;
+        signatureCanvas.onmouseleave = stopDrawing;
+
+        signatureCanvas.ontouchstart = startDrawing;
+        signatureCanvas.ontouchmove = draw;
+        signatureCanvas.ontouchend = stopDrawing;
+      };
+
+      window.clearSignatureCanvas = function() {
+        if (signatureCtx && signatureCanvas) {
+          signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        }
+      };
+
+      window.openSignatureModal = function() {
+        const modal = document.getElementById('modal-signature-pad');
+        if (modal) {
+          modal.classList.add('active');
+          setTimeout(() => {
+            initSignatureCanvas();
+            clearSignatureCanvas();
+          }, 60);
+        }
+      };
+
+      window.closeSignatureModal = function() {
+        const modal = document.getElementById('modal-signature-pad');
+        if (modal) modal.classList.remove('active');
+      };
+
+      window.confirmSignatureAndDownload = function() {
+        let sigDataUrl = null;
+        if (signatureCanvas) {
+          const blank = document.createElement('canvas');
+          blank.width = signatureCanvas.width;
+          blank.height = signatureCanvas.height;
+          if (signatureCanvas.toDataURL() !== blank.toDataURL()) {
+            sigDataUrl = signatureCanvas.toDataURL('image/png');
+          }
+        }
+        closeSignatureModal();
+        if (appState.activeInvoice) {
+          const updatedInv = { ...appState.activeInvoice, signatureDataUrl: sigDataUrl };
+          appState.activeInvoice = updatedInv;
+          generateInvoicePDF(updatedInv);
+        }
+      };
 
       renderCart();
     });
