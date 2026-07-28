@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shopflow-v1';
+const CACHE_NAME = 'shopflow-v4';
 
 // Derive the base path from where sw.js is located.
 // On GitHub Pages: self.location.pathname = '/repo-name/sw.js' -> base = '/repo-name/'
@@ -23,6 +23,12 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
@@ -34,16 +40,23 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  // Let CDN requests (fonts, libraries) pass through with network-first.
-  // Cache app shell and local data files with cache-first strategy.
+
   const url = new URL(event.request.url);
-  const isExternal = url.origin !== self.location.origin;
-  if (isExternal) {
+  const isHTML = event.request.mode === 'navigate' || url.pathname.endsWith('index.html') || url.pathname === BASE;
+
+  // Use Network-First for HTML navigation so GitHub Pages always loads the latest code
+  if (isHTML) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
+      fetch(event.request).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
+
+  // Cache-First for static assets
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
