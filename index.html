@@ -3888,10 +3888,10 @@
           items.forEach((item, index) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border);">${item.product_name}</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border);">${item.name}</td>
               <td style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border); text-align: right;">${item.quantity}</td>
               <td style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border); text-align: right;">
-                <input type="number" class="input-field cn-return-qty" data-index="${index}" data-price="${item.unit_price}" data-max="${item.quantity}" min="0" max="${item.quantity}" value="0" style="width: 80px; padding: 0.25rem; height: 32px; text-align: center; margin-left: auto;">
+                <input type="number" class="input-field cn-return-qty" data-index="${index}" data-price="${item.sale_price}" data-max="${item.quantity}" min="0" max="${item.quantity}" value="0" style="width: 80px; padding: 0.25rem; height: 32px; text-align: center; margin-left: auto;">
               </td>
             `;
             tbody.appendChild(tr);
@@ -3938,7 +3938,7 @@
                 ...originalItem,
                 return_qty: qty
               });
-              totalRefund += qty * originalItem.unit_price;
+              totalRefund += qty * originalItem.sale_price;
             }
           });
           
@@ -3969,7 +3969,7 @@
             syncToCloud('credit_notes', creditNote);
             
             for (const item of returnedItems) {
-              const prod = await db.products.get(item.product_id);
+              const prod = await db.products.get(item.id);
               if (prod) {
                 const updatedStock = prod.stock_quantity + item.return_qty;
                 await db.products.update(prod.id, { stock_quantity: updatedStock });
