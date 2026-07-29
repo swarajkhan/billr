@@ -1858,7 +1858,7 @@
 
       async function handleSaveProfile(e) {
         e.preventDefault();
-        const shopName = document.getElementById('settings-shop-name').value.trim();
+        const shopName = document.getElementById('settings-shop-name')?.value.trim();
         if (!shopName) {
           showToast('Shop Name is required', 'error');
           return;
@@ -1867,15 +1867,15 @@
         const updated = {
           id: 'default_shop',
           shop_name: shopName,
-          owner_name: document.getElementById('settings-owner-name').value.trim(),
-          phone: document.getElementById('settings-phone').value.trim(),
-          email: document.getElementById('settings-email').value.trim(),
-          gstin: document.getElementById('settings-gstin').value.trim(),
-          address: document.getElementById('settings-address').value.trim(),
-          currency_symbol: document.getElementById('settings-currency').value.trim() || '₹',
-          low_stock_threshold: parseInt(document.getElementById('settings-threshold').value) || 5,
-          receipt_footer: document.getElementById('settings-footer').value.trim() || 'Thank you!',
-          terms_and_conditions: document.getElementById('settings-terms').value.trim(),
+          owner_name: document.getElementById('settings-owner-name')?.value.trim() || '',
+          phone: document.getElementById('settings-phone')?.value.trim() || '',
+          email: document.getElementById('settings-email')?.value.trim() || '',
+          gstin: document.getElementById('settings-gstin')?.value.trim() || '',
+          address: document.getElementById('settings-address')?.value.trim() || '',
+          currency_symbol: document.getElementById('settings-currency')?.value.trim() || '₹',
+          low_stock_threshold: parseInt(document.getElementById('settings-threshold')?.value) || 5,
+          receipt_footer: document.getElementById('settings-footer')?.value.trim() || 'Thank you!',
+          terms_and_conditions: document.getElementById('settings-terms')?.value.trim() || '',
           show_address: document.getElementById('settings-show-address')?.checked ?? true,
           show_phone: document.getElementById('settings-show-phone')?.checked ?? true,
           show_email: document.getElementById('settings-show-email')?.checked ?? true,
