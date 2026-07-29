@@ -1576,13 +1576,60 @@
           </div>
         </div>
         <div class="modal-footer" style="display: flex; gap: 0.75rem; justify-content: space-between;">
-          <button id="btn-share-whatsapp" class="btn btn-secondary" style="color: #25D366; border-color: #25D366;"><i
-              class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="btn-share-whatsapp" class="btn btn-secondary" style="color: #25D366; border-color: #25D366;"><i
+                class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+            <button id="btn-issue-credit-note" class="btn btn-secondary" style="color: var(--clr-danger); border-color: var(--clr-danger);"><i
+                class="fa-solid fa-arrow-rotate-left"></i> Return Items</button>
+          </div>
           <div style="display: flex; gap: 0.5rem;">
             <button id="btn-download-pdf" class="btn btn-primary"><i class="fa-solid fa-file-pdf"></i> Download
               PDF</button>
             <button id="btn-print-receipt" class="btn btn-secondary"><i class="fa-solid fa-print"></i> Print</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credit Note Modal -->
+    <div id="modal-credit-note" class="modal-overlay" style="z-index: 1060;">
+      <div class="modal-box" style="max-width: 600px;">
+        <div class="modal-header">
+          <h3 id="modal-credit-note-title">Issue Credit Note</h3>
+          <button class="btn btn-secondary modal-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: var(--clr-text-2); margin-bottom: 1rem;">Select the items and quantities you want to return from this invoice. Returned items will be added back to inventory stock automatically.</p>
+          
+          <div style="background: var(--clr-surface); border: 1px solid var(--clr-border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 1rem;">
+            <table style="width: 100%; text-align: left; border-collapse: collapse;">
+              <thead style="background: rgba(0,0,0,0.2); font-size: 0.8rem; text-transform: uppercase;">
+                <tr>
+                  <th style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border);">Item</th>
+                  <th style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border); text-align: right;">Purchased</th>
+                  <th style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border); text-align: right;">Return Qty</th>
+                </tr>
+              </thead>
+              <tbody id="credit-note-items-table">
+                <!-- Dynamically rendered -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; font-size: 0.85rem; margin-bottom: 0.3rem; color: var(--clr-text-2);">Return Reason / Notes</label>
+            <input type="text" id="credit-note-reason" class="input-field" placeholder="e.g. Defective, Customer changed mind" value="General Return">
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.1); padding: 1rem; border-radius: var(--radius-md);">
+            <span style="font-weight: 600; color: var(--clr-text-2);">Total Refund Amount:</span>
+            <span id="credit-note-total-amount" style="font-size: 1.25rem; font-weight: 700; color: var(--clr-danger);">₹0.00</span>
+          </div>
+
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button class="btn btn-secondary modal-close">Cancel</button>
+          <button id="btn-confirm-credit-note" class="btn btn-primary" style="background: var(--clr-danger); border-color: var(--clr-danger);">Confirm Return</button>
         </div>
       </div>
     </div>
@@ -1619,6 +1666,10 @@
         invoice_items: '&id, invoice_id, product_id',
         sync_queue: '++localId, table_name, operation, payload, created_at, retries',
         shop_profile: '&id'
+      });
+      db.version(2).stores({
+        credit_notes: '&id, credit_note_number, invoice_id, customer_id, created_at',
+        stock_adjustments: '&id, product_id, adjustment_type, created_at'
       });
 
       // ===== SECTION: Application State =====
@@ -1978,10 +2029,8 @@
             document.getElementById('user-status-label').textContent = 'Cloud Connected';
             document.getElementById('user-avatar-initials').textContent = displayName.charAt(0).toUpperCase();
 
-            if (event === 'SIGNED_IN') {
-              drainSyncQueue();
-              syncFromCloud(true);
-            }
+            // Do not auto-sync on SIGNED_IN or INITIAL_SESSION here to prevent aggressive focus-triggered syncing.
+            // We rely on explicit user actions (Save/Complete) and manual refresh for syncing.
           }
         });
 
@@ -2001,7 +2050,6 @@
             appState.session = { loggedIn: true, guest: false, user: user };
             localStorage.setItem('shopflow_session', JSON.stringify(appState.session));
             showAuthenticatedApp();
-            syncFromCloud(true);
           }
         } catch (e) {
           console.warn('Supabase session verification error:', e);
@@ -2138,8 +2186,9 @@
           updateSyncBadge('syncing');
           const userId = appState.session.user.id;
           const syncPayload = formatPayloadForSupabase(tableName, payload, userId);
+          const conflictKey = tableName === 'shop_profiles' ? 'user_id' : 'id';
 
-          let { error } = await supabase.from(tableName).upsert(syncPayload, { onConflict: 'id' });
+          let { error } = await supabase.from(tableName).upsert(syncPayload, { onConflict: conflictKey });
 
           // Handle JWT clock-skew: server says token is from the future → force-refresh & retry once
           if (error && (error.code === 'PGRST303' || (error.message && error.message.includes('JWT issued at future')))) {
@@ -2147,7 +2196,7 @@
             const { data: refreshData } = await supabase.auth.refreshSession();
             if (refreshData?.session) appState.session = { ...appState.session, ...refreshData.session };
             await new Promise(r => setTimeout(r, 1500));
-            const retry = await supabase.from(tableName).upsert(syncPayload, { onConflict: 'id' });
+            const retry = await supabase.from(tableName).upsert(syncPayload, { onConflict: conflictKey });
             error = retry.error;
           }
 
@@ -2159,13 +2208,13 @@
               const custPayload = formatPayloadForSupabase('customers', custLoc, userId);
               await supabase.from('customers').upsert(custPayload, { onConflict: 'id' });
             }
-            const retryInv = await supabase.from(tableName).upsert(syncPayload, { onConflict: 'id' });
+            const retryInv = await supabase.from(tableName).upsert(syncPayload, { onConflict: conflictKey });
             if (!retryInv.error) {
               error = null;
             } else {
               // Fallback: strip customer_id for cloud payload while keeping customer_name & customer_phone intact
               const safePayload = { ...syncPayload, customer_id: null };
-              const safeRetry = await supabase.from(tableName).upsert(safePayload, { onConflict: 'id' });
+              const safeRetry = await supabase.from(tableName).upsert(safePayload, { onConflict: conflictKey });
               error = safeRetry.error;
             }
           }
@@ -2208,7 +2257,9 @@
 
             const userId = appState.session.user.id;
             const syncPayload = formatPayloadForSupabase(item.table_name, item.payload, userId);
-            let { error } = await supabase.from(item.table_name).upsert(syncPayload, { onConflict: 'id' });
+            const conflictKey = item.table_name === 'shop_profiles' ? 'user_id' : 'id';
+            
+            let { error } = await supabase.from(item.table_name).upsert(syncPayload, { onConflict: conflictKey });
 
             if (error && error.code === '23503' && item.table_name === 'invoices' && syncPayload.customer_id) {
               const custLoc = await db.customers.get(syncPayload.customer_id);
@@ -2216,12 +2267,12 @@
                 const custPayload = formatPayloadForSupabase('customers', custLoc, userId);
                 await supabase.from('customers').upsert(custPayload, { onConflict: 'id' });
               }
-              const retryInv = await supabase.from(item.table_name).upsert(syncPayload, { onConflict: 'id' });
+              const retryInv = await supabase.from(item.table_name).upsert(syncPayload, { onConflict: conflictKey });
               if (!retryInv.error) {
                 error = null;
               } else {
                 const safePayload = { ...syncPayload, customer_id: null };
-                const safeRetry = await supabase.from(item.table_name).upsert(safePayload, { onConflict: 'id' });
+                const safeRetry = await supabase.from(item.table_name).upsert(safePayload, { onConflict: conflictKey });
                 error = safeRetry.error;
               }
             }
@@ -3060,6 +3111,122 @@
         }, 50); // Yield thread
       }
 
+      function generateCreditNotePDF(creditNote) {
+        if (!creditNote) return;
+        showToast('Generating Credit Note PDF...', 'info');
+        
+        try {
+          const doc = new window.jspdf.jsPDF();
+          const p = appState.shopProfile;
+          const pageWidth = doc.internal.pageSize.getWidth();
+          
+          let y = 15;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(22);
+          doc.text(p.shop_name, pageWidth / 2, y, { align: 'center' });
+          
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          if (p.address && p.show_address) { y += 6; doc.text(p.address, pageWidth / 2, y, { align: 'center' }); }
+          if (p.phone && p.show_phone) { y += 5; doc.text(`Phone: ${p.phone}`, pageWidth / 2, y, { align: 'center' }); }
+          if (p.email && p.show_email) { y += 5; doc.text(`Email: ${p.email}`, pageWidth / 2, y, { align: 'center' }); }
+          if (p.gstin && p.show_gstin) { y += 5; doc.text(`GSTIN: ${p.gstin}`, pageWidth / 2, y, { align: 'center' }); }
+
+          y += 10;
+          doc.setDrawColor(200);
+          doc.line(15, y, pageWidth - 15, y);
+          y += 8;
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(16);
+          doc.setTextColor(220, 38, 38); // Red for credit note
+          doc.text('CREDIT NOTE / RETURN', pageWidth / 2, y, { align: 'center' });
+          doc.setTextColor(0, 0, 0);
+
+          y += 10;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          
+          doc.text(`Credit Note #: ${creditNote.credit_note_number}`, 15, y);
+          doc.text(`Date: ${new Date(creditNote.created_at).toLocaleDateString()}`, pageWidth - 15, y, { align: 'right' });
+          y += 6;
+          doc.text(`Ref Invoice #: ${creditNote.invoice_number}`, 15, y);
+          doc.text(`Customer: ${creditNote.customer_name || 'Walk-in'}`, pageWidth - 15, y, { align: 'right' });
+          if (creditNote.customer_phone) {
+            y += 6;
+            doc.text(`Phone: ${creditNote.customer_phone}`, pageWidth - 15, y, { align: 'right' });
+          }
+
+          y += 10;
+          doc.setDrawColor(0);
+          doc.setFillColor(240, 240, 240);
+          doc.rect(15, y, pageWidth - 30, 8, 'F');
+          
+          doc.setFont('helvetica', 'bold');
+          doc.text('Item', 17, y + 5.5);
+          doc.text('Return Qty', 105, y + 5.5, { align: 'center' });
+          doc.text('Price', 145, y + 5.5, { align: 'right' });
+          doc.text('Refund', pageWidth - 17, y + 5.5, { align: 'right' });
+          
+          y += 10;
+          doc.setFont('helvetica', 'normal');
+          
+          let items = creditNote.items;
+          if (typeof items === 'string') items = JSON.parse(items);
+          
+          items.forEach(item => {
+            const name = item.product_name;
+            const maxChars = 45;
+            let nameLines = [];
+            for (let i = 0; i < name.length; i += maxChars) {
+              nameLines.push(name.substring(i, i + maxChars));
+            }
+            
+            let itemY = y;
+            nameLines.forEach(line => {
+              doc.text(line, 17, itemY);
+              itemY += 5;
+            });
+            
+            doc.text(item.return_qty.toString(), 105, y, { align: 'center' });
+            doc.text(`${p.currency_symbol}${item.unit_price.toFixed(2)}`, 145, y, { align: 'right' });
+            doc.text(`${p.currency_symbol}${(item.return_qty * item.unit_price).toFixed(2)}`, pageWidth - 17, y, { align: 'right' });
+            
+            y = Math.max(itemY, y + 6);
+            
+            if (y > 270) {
+              doc.addPage();
+              y = 20;
+            }
+          });
+
+          y += 5;
+          doc.setDrawColor(200);
+          doc.line(15, y, pageWidth - 15, y);
+          y += 8;
+
+          doc.setFont('helvetica', 'bold');
+          doc.text('Reason:', 15, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(creditNote.return_reason || 'General Return', 35, y);
+
+          y += 10;
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Total Refunded:', 130, y, { align: 'right' });
+          doc.setTextColor(220, 38, 38);
+          doc.text(`${p.currency_symbol}${parseFloat(creditNote.total_amount).toFixed(2)}`, pageWidth - 17, y, { align: 'right' });
+          doc.setTextColor(0, 0, 0);
+
+          doc.save(`Credit_Note_${creditNote.credit_note_number}.pdf`);
+          showToast('Credit Note PDF downloaded successfully!', 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to generate Credit Note PDF.', 'error');
+        }
+      }
+
+
       function _printInvoiceWindow(invoice) {
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
 
@@ -3703,7 +3870,139 @@
           }
         });
 
-        // Real-time Search & Filter Input Event Listeners
+        
+        document.getElementById('btn-issue-credit-note')?.addEventListener('click', () => {
+          if (!appState.activeInvoice) return;
+          
+          document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+          
+          let items = appState.activeInvoice.items;
+          if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch(e) { items = []; }
+          }
+          
+          const tbody = document.getElementById('credit-note-items-table');
+          tbody.innerHTML = '';
+          
+          items.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border);">${item.product_name}</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border); text-align: right;">${item.quantity}</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--clr-border); text-align: right;">
+                <input type="number" class="input-field cn-return-qty" data-index="${index}" data-price="${item.unit_price}" data-max="${item.quantity}" min="0" max="${item.quantity}" value="0" style="width: 80px; padding: 0.25rem; height: 32px; text-align: center; margin-left: auto;">
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+          
+          document.getElementById('credit-note-total-amount').textContent = appState.shopProfile.currency_symbol + '0.00';
+          
+          document.querySelectorAll('.cn-return-qty').forEach(input => {
+            input.addEventListener('input', (e) => {
+              let val = parseInt(e.target.value) || 0;
+              const max = parseInt(e.target.dataset.max);
+              if (val < 0) val = 0;
+              if (val > max) val = max;
+              e.target.value = val;
+              
+              let totalRefund = 0;
+              document.querySelectorAll('.cn-return-qty').forEach(inp => {
+                totalRefund += (parseInt(inp.value) || 0) * parseFloat(inp.dataset.price);
+              });
+              document.getElementById('credit-note-total-amount').textContent = appState.shopProfile.currency_symbol + totalRefund.toFixed(2);
+            });
+          });
+          
+          const modal = document.getElementById('modal-credit-note');
+          if (modal) modal.classList.add('active');
+        });
+
+        document.getElementById('btn-confirm-credit-note')?.addEventListener('click', async () => {
+          if (!appState.activeInvoice) return;
+          
+          const returnInputs = document.querySelectorAll('.cn-return-qty');
+          let returnedItems = [];
+          let totalRefund = 0;
+          
+          let items = appState.activeInvoice.items;
+          if (typeof items === 'string') items = JSON.parse(items);
+          
+          returnInputs.forEach(inp => {
+            const qty = parseInt(inp.value) || 0;
+            if (qty > 0) {
+              const idx = parseInt(inp.dataset.index);
+              const originalItem = items[idx];
+              returnedItems.push({
+                ...originalItem,
+                return_qty: qty
+              });
+              totalRefund += qty * originalItem.unit_price;
+            }
+          });
+          
+          if (returnedItems.length === 0) {
+            showToast('No items selected for return.', 'error');
+            return;
+          }
+          
+          const creditNote = {
+            id: crypto.randomUUID(),
+            user_id: appState.session?.user?.id || null,
+            credit_note_number: 'CN-' + Math.floor(100000 + Math.random() * 900000),
+            invoice_id: appState.activeInvoice.id,
+            invoice_number: appState.activeInvoice.invoice_number,
+            customer_id: appState.activeInvoice.customer_id,
+            customer_name: appState.activeInvoice.customer_name,
+            customer_phone: appState.activeInvoice.customer_phone,
+            return_reason: document.getElementById('credit-note-reason').value.trim() || 'General Return',
+            refund_method: 'Store Credit',
+            total_amount: totalRefund,
+            items: JSON.stringify(returnedItems),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          try {
+            await db.credit_notes.add(creditNote);
+            syncToCloud('credit_notes', creditNote);
+            
+            for (const item of returnedItems) {
+              const prod = await db.products.get(item.product_id);
+              if (prod) {
+                const updatedStock = prod.stock_quantity + item.return_qty;
+                await db.products.update(prod.id, { stock_quantity: updatedStock });
+                syncToCloud('products', { ...prod, stock_quantity: updatedStock });
+                
+                const adj = {
+                  id: crypto.randomUUID(),
+                  user_id: appState.session?.user?.id || null,
+                  product_id: prod.id,
+                  adjustment_type: 'return',
+                  quantity_change: item.return_qty,
+                  stock_before: prod.stock_quantity,
+                  stock_after: updatedStock,
+                  cost_per_unit: prod.cost_price,
+                  reference_note: 'Credit Note ' + creditNote.credit_note_number,
+                  created_at: new Date().toISOString()
+                };
+                await db.stock_adjustments.add(adj);
+                syncToCloud('stock_adjustments', adj);
+              }
+            }
+            
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            showToast('Credit Note created successfully. Stock updated.', 'success');
+            
+            generateCreditNotePDF(creditNote);
+            
+          } catch(e) {
+            console.error(e);
+            showToast('Failed to issue Credit Note.', 'error');
+          }
+        });
+
+// Real-time Search & Filter Input Event Listeners
         ['inv-search-input', 'inv-filter-category', 'inv-sort-by'].forEach(id => {
           document.getElementById(id)?.addEventListener('input', renderInventoryTable);
           document.getElementById(id)?.addEventListener('change', renderInventoryTable);
