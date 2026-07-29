@@ -3175,7 +3175,7 @@
           if (typeof items === 'string') items = JSON.parse(items);
           
           items.forEach(item => {
-            const name = item.product_name;
+            const name = item.name || 'Unknown Item';
             const maxChars = 45;
             let nameLines = [];
             for (let i = 0; i < name.length; i += maxChars) {
@@ -3189,8 +3189,8 @@
             });
             
             doc.text(item.return_qty.toString(), 105, y, { align: 'center' });
-            doc.text(`${p.currency_symbol}${item.unit_price.toFixed(2)}`, 145, y, { align: 'right' });
-            doc.text(`${p.currency_symbol}${(item.return_qty * item.unit_price).toFixed(2)}`, pageWidth - 17, y, { align: 'right' });
+            doc.text(`${p.currency_symbol}${item.sale_price.toFixed(2)}`, 145, y, { align: 'right' });
+            doc.text(`${p.currency_symbol}${(item.return_qty * item.sale_price).toFixed(2)}`, pageWidth - 17, y, { align: 'right' });
             
             y = Math.max(itemY, y + 6);
             
@@ -3225,6 +3225,7 @@
           showToast('Failed to generate Credit Note PDF.', 'error');
         }
       }
+
 
 
       function _printInvoiceWindow(invoice) {
